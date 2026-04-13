@@ -7,7 +7,7 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     // TAMBAHKAN ATAU UBAH BAGIAN INI
-    http: {
+   http: {
       storeCors: "http://localhost:8000,http://localhost:3000", 
       adminCors: "http://localhost:7000,http://localhost:9000",
       authCors: "http://localhost:8000,http://localhost:3000",
@@ -44,14 +44,18 @@ export default defineConfig({
 
     // --- MODULE B: Custom Module 'Make Your Own Brand' Kita ---
     reviews: {
-        resolve: "./src/modules/reviews",
-      },
+      resolve: "./src/modules/reviews",
+    },
     myob: {
       resolve: "./src/modules/myob",
     },
     hero: {
-    resolve: "./src/modules/hero",
-  },
+      resolve: "./src/modules/hero",
+    },
+    storeLocation: {
+      resolve: "./src/modules/store-location",
+    },
+  
   
   }
 })
