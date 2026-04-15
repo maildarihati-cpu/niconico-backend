@@ -6,14 +6,19 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
-    // TAMBAHKAN ATAU UBAH BAGIAN INI
-   http: {
-      storeCors: "http://localhost:8000,http://localhost:3000", 
-      adminCors: "http://localhost:7000,http://localhost:9000",
-      authCors: "http://localhost:8000,http://localhost:3000",
+    http: {
+      // Saran: Masukkan URL Vercel kamu di sini nanti agar tidak kena blokir CORS
+      storeCors: process.env.STORE_CORS || "http://localhost:8000,http://localhost:3000", 
+      adminCors: process.env.ADMIN_CORS || "http://localhost:7000,http://localhost:9000",
+      authCors: process.env.AUTH_CORS || "http://localhost:8000,http://localhost:3000",
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
+  },
+
+  // --- BAGIAN PENYELAMAT: Mematikan Admin Dashboard di Railway ---
+  admin: {
+    disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
   },
 
   // 2. Registrasi Modules (HARUS BERUPA OBJECT DI MEDUSA V2)
@@ -42,7 +47,7 @@ export default defineConfig({
       },
     },
 
-    // --- MODULE B: Custom Module 'Make Your Own Brand' Kita ---
+    // --- MODULE B: Custom Modules ---
     reviews: {
       resolve: "./src/modules/reviews",
     },
@@ -55,7 +60,5 @@ export default defineConfig({
     storeLocation: {
       resolve: "./src/modules/store-location",
     },
-  
-  
   }
 })
