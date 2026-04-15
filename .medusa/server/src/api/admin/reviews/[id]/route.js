@@ -1,0 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DELETE = exports.PUT = void 0;
+// --- FUNGSI UPDATE (PUT) ---
+const PUT = async (req, res) => {
+    const reviewService = req.scope.resolve("reviews");
+    // ID diambil dari nama folder [id]
+    const { id } = req.params;
+    const review = await reviewService.updateReviews({
+        id,
+        ...req.body
+    });
+    return res.json({ review });
+};
+exports.PUT = PUT;
+// --- FUNGSI DELETE ---
+const DELETE = async (req, res) => {
+    const reviewService = req.scope.resolve("reviews");
+    await reviewService.deleteReviews(req.params.id);
+    return res.json({ success: true });
+};
+exports.DELETE = DELETE;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicm91dGUuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi8uLi8uLi8uLi8uLi8uLi9zcmMvYXBpL2FkbWluL3Jldmlld3MvW2lkXS9yb3V0ZS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7QUFFQSw4QkFBOEI7QUFDdkIsTUFBTSxHQUFHLEdBQUcsS0FBSyxFQUFFLEdBQWtCLEVBQUUsR0FBbUIsRUFBRSxFQUFFO0lBQ25FLE1BQU0sYUFBYSxHQUFHLEdBQUcsQ0FBQyxLQUFLLENBQUMsT0FBTyxDQUFDLFNBQVMsQ0FBQyxDQUFBO0lBRWxELG1DQUFtQztJQUNuQyxNQUFNLEVBQUUsRUFBRSxFQUFFLEdBQUcsR0FBRyxDQUFDLE1BQU0sQ0FBQTtJQUV6QixNQUFNLE1BQU0sR0FBRyxNQUFNLGFBQWEsQ0FBQyxhQUFhLENBQUM7UUFDL0MsRUFBRTtRQUNGLEdBQUksR0FBRyxDQUFDLElBQVk7S0FDckIsQ0FBQyxDQUFBO0lBRUYsT0FBTyxHQUFHLENBQUMsSUFBSSxDQUFDLEVBQUUsTUFBTSxFQUFFLENBQUMsQ0FBQTtBQUM3QixDQUFDLENBQUE7QUFaWSxRQUFBLEdBQUcsT0FZZjtBQUVELHdCQUF3QjtBQUNqQixNQUFNLE1BQU0sR0FBRyxLQUFLLEVBQUUsR0FBa0IsRUFBRSxHQUFtQixFQUFFLEVBQUU7SUFDdEUsTUFBTSxhQUFhLEdBQUcsR0FBRyxDQUFDLEtBQUssQ0FBQyxPQUFPLENBQUMsU0FBUyxDQUFDLENBQUE7SUFFbEQsTUFBTSxhQUFhLENBQUMsYUFBYSxDQUFDLEdBQUcsQ0FBQyxNQUFNLENBQUMsRUFBRSxDQUFDLENBQUE7SUFFaEQsT0FBTyxHQUFHLENBQUMsSUFBSSxDQUFDLEVBQUUsT0FBTyxFQUFFLElBQUksRUFBRSxDQUFDLENBQUE7QUFDcEMsQ0FBQyxDQUFBO0FBTlksUUFBQSxNQUFNLFVBTWxCIn0=

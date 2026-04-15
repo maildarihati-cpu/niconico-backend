@@ -21,7 +21,7 @@ medusa-db.sql
 !.yarn/sdks
 !.yarn/versions
 
-.medusa
+
 
 # Dependencies (WAJIB DIABAIKAN)
 node_modules/

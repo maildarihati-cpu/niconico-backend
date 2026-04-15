@@ -1,0 +1,24 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OPTIONS = exports.GET = void 0;
+const GET = async (req, res) => {
+    const reviewService = req.scope.resolve("reviews");
+    const reviews = await reviewService.listReviews({}, {
+        order: { created_at: "DESC" },
+        take: 10
+    });
+    res.setHeader("Access-Control-Allow-Origin", "http://localhost:8000");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.json({ reviews });
+};
+exports.GET = GET;
+// Tambahkan rute OPTIONS untuk "pre-flight request" browser
+const OPTIONS = async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "http://localhost:8000");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.status(200).send();
+};
+exports.OPTIONS = OPTIONS;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicm91dGUuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi8uLi8uLi8uLi9zcmMvYXBpL3Jldmlld3Mvcm91dGUudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBRU8sTUFBTSxHQUFHLEdBQUcsS0FBSyxFQUFFLEdBQWtCLEVBQUUsR0FBbUIsRUFBRSxFQUFFO0lBQ25FLE1BQU0sYUFBYSxHQUFHLEdBQUcsQ0FBQyxLQUFLLENBQUMsT0FBTyxDQUFDLFNBQVMsQ0FBQyxDQUFBO0lBRWxELE1BQU0sT0FBTyxHQUFHLE1BQU0sYUFBYSxDQUFDLFdBQVcsQ0FDN0MsRUFBRSxFQUNGO1FBQ0UsS0FBSyxFQUFFLEVBQUUsVUFBVSxFQUFFLE1BQU0sRUFBRTtRQUM3QixJQUFJLEVBQUUsRUFBRTtLQUNULENBQ0YsQ0FBQTtJQUVELEdBQUcsQ0FBQyxTQUFTLENBQUMsNkJBQTZCLEVBQUUsdUJBQXVCLENBQUMsQ0FBQTtJQUNyRSxHQUFHLENBQUMsU0FBUyxDQUFDLDhCQUE4QixFQUFFLGFBQWEsQ0FBQyxDQUFBO0lBQzVELEdBQUcsQ0FBQyxTQUFTLENBQUMsOEJBQThCLEVBQUUsY0FBYyxDQUFDLENBQUE7SUFFN0QsT0FBTyxHQUFHLENBQUMsSUFBSSxDQUFDLEVBQUUsT0FBTyxFQUFFLENBQUMsQ0FBQTtBQUM5QixDQUFDLENBQUE7QUFoQlksUUFBQSxHQUFHLE9BZ0JmO0FBRUQsNERBQTREO0FBQ3JELE1BQU0sT0FBTyxHQUFHLEtBQUssRUFBRSxHQUFrQixFQUFFLEdBQW1CLEVBQUUsRUFBRTtJQUN2RSxHQUFHLENBQUMsU0FBUyxDQUFDLDZCQUE2QixFQUFFLHVCQUF1QixDQUFDLENBQUE7SUFDckUsR0FBRyxDQUFDLFNBQVMsQ0FBQyw4QkFBOEIsRUFBRSxhQUFhLENBQUMsQ0FBQTtJQUM1RCxHQUFHLENBQUMsU0FBUyxDQUFDLDhCQUE4QixFQUFFLGNBQWMsQ0FBQyxDQUFBO0lBQzdELE9BQU8sR0FBRyxDQUFDLE1BQU0sQ0FBQyxHQUFHLENBQUMsQ0FBQyxJQUFJLEVBQUUsQ0FBQTtBQUMvQixDQUFDLENBQUE7QUFMWSxRQUFBLE9BQU8sV0FLbkIifQ==
