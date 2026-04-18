@@ -3,20 +3,13 @@ import multer from "multer"
 
 const upload = multer({ storage: multer.memoryStorage() })
 
-// Resep CORS yang pintar (Bisa baca Vercel & Localhost)
+// Resep CORS Sapu Jagat (Otomatis nerima tamu dari Vercel maupun Localhost tanpa ribet ngecek .env)
 const corsMiddleware = (req: any, res: any, next: any) => {
-  const origin = req.headers.origin;
+  // Ambil nama asal yang ngetok pintu, kalau kosong kasih bintang (*)
+  const origin = req.headers.origin || "*";
   
-  // Baca daftar URL yang diizinkan dari Railway (isinya Vercel & Localhost)
-  const allowedOrigins = process.env.STORE_CORS 
-    ? process.env.STORE_CORS.split(",") 
-    : ["https://dev.niconicoresort.com", "http://localhost:8000"];
-
-  // Kalau yang nge-request ada di daftar tamu, silakan masuk!
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
+  // Kasih stempel izin langsung pakai nama si tamu
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-publishable-api-key, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -40,7 +33,7 @@ export default defineMiddlewares({
       middlewares: [corsMiddleware],
     },
     {
-      // Izin CORS untuk Reviews
+      // 3. Izin CORS untuk Reviews
       matcher: "/reviews*", 
       middlewares: [corsMiddleware],
     },
