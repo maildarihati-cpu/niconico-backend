@@ -1,8 +1,10 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+  // Mengambil service reviews
   const reviewService = req.scope.resolve("reviews")
 
+  // Mengambil data reviews dari database
   const reviews = await reviewService.listReviews(
     {}, 
     { 
@@ -11,17 +13,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     }
   )
 
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:8000")
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS")
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type")
-
+  // Langsung kembalikan JSON. 
+  // Biarkan middleware.ts yang mengurus izin akses (CORS) secara otomatis.
   return res.json({ reviews })
-}
-
-// Tambahkan rute OPTIONS untuk "pre-flight request" browser
-export const OPTIONS = async (req: MedusaRequest, res: MedusaResponse) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:8000")
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS")
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type")
-  return res.status(200).send()
 }
