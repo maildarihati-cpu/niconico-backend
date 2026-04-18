@@ -40,8 +40,8 @@ export default defineMiddlewares({
       middlewares: [corsMiddleware],
     },
     {
-      // 3. Izin CORS untuk Our Story (TADI KETINGGALAN SAY!)
-      matcher: "/our-story*", 
+      // Izin CORS untuk Reviews
+      matcher: "/reviews*", 
       middlewares: [corsMiddleware],
     },
     {
