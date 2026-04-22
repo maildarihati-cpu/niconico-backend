@@ -1,30 +1,32 @@
-import { 
-  type SubscriberConfig, 
-  type SubscriberArgs 
-} from "@medusajs/medusa";
-import { resend } from "../lib/resend"; // Pastikan path ke resend.ts bener ya say
+import { type SubscriberArgs, type SubscriberConfig } from "@medusajs/medusa"
+import { Modules } from "@medusajs/framework/utils" // 👈 Mengikuti standar v2 kamu
+import { resend } from "../lib/resend"
 
 export default async function customerUpdatedHandler({
-  event, // Ganti 'data' menjadi 'event'
+  event: { data }, // Mengikuti gaya destrukturisasi kamu
   container,
-}: SubscriberArgs<any>) {
-  // 1. Ambil service kustomer lewat container (Tanpa import CustomerService di atas)
-  const customerService: any = container.resolve("customerService");
+}: SubscriberArgs<{ id: string }>) { 
+  
+  console.log("🔥 EVENT TERTANGKAP: Update kustomer dengan ID:", data.id)
 
-  // 2. Ambil ID kustomer dari event.data
-  const { id } = event.data;
-
-  // 3. Tarik data lengkap kustomer
   try {
-    const customer = await customerService.retrieve(id);
+    // 1. CARA MEDUSA V2: Menggunakan Modules.CUSTOMER sesuai contohmu
+    const customerModuleService = container.resolve(Modules.CUSTOMER)
+    
+    // 2. Retrieve data kustomer terbaru
+    const customer = await customerModuleService.retrieveCustomer(data.id)
 
-    if (!customer) return;
+    if (!customer.email) {
+        console.log("⚠️ Kustomer tidak punya email, operasi dihentikan.")
+        return
+    }
 
-    // 4. Kirim Email via Resend
-    await resend.emails.send({
-      from: 'Niconico Resort <onboarding@resend.dev>', // Ganti pakai domain kamu nanti
-      to: [customer.email],
-      subject: 'Profile Updated Successfully 🍍',
+    // 3. Kirim Email via Resend
+    // Pakai from: info@niconicoresort.com sesuai kodingan welcome kamu
+    const resendResponse = await resend.emails.send({
+      from: "info@niconicoresort.com", 
+      to: customer.email,
+      subject: "Profile Updated Successfully 🍍",
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
           <h2 style="color: #EF7044;">Halo, ${customer.first_name}!</h2>
@@ -40,15 +42,13 @@ export default async function customerUpdatedHandler({
       `,
     });
     
-    console.log(`✅ Success: Email update profil terkirim ke ${customer.email}`);
+    console.log(`✅ Update email sukses dikirim ke: ${customer.email}`)
+
   } catch (error) {
-    console.error("❌ Gagal proses subscriber update kustomer:", error);
+    console.error(`❌ ERROR DI SUBSCRIBER UPDATE:`, error)
   }
 }
 
 export const config: SubscriberConfig = {
   event: "customer.updated",
-  context: {
-    subscriberId: "customer-updated-handler",
-  },
-};
+}
