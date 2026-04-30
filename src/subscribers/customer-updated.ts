@@ -7,7 +7,7 @@ export default async function customerUpdatedHandler({
   container,
 }: SubscriberArgs<{ id: string }>) { 
   
-  console.log("🔥 EVENT TERTANGKAP: Update kustomer dengan ID:", data.id)
+  
 
   try {
     // 1. CARA MEDUSA V2: Menggunakan Modules.CUSTOMER sesuai contohmu
@@ -42,10 +42,10 @@ export default async function customerUpdatedHandler({
       `,
     });
     
-    console.log(`✅ Update email sukses dikirim ke: ${customer.email}`)
+   
 
   } catch (error) {
-    console.error(`❌ ERROR DI SUBSCRIBER UPDATE:`, error)
+    
   }
 }
 

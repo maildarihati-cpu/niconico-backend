@@ -44,7 +44,7 @@ export default async function passwordResetHandler({
     console.log(`✅ Email token reset password sukses dikirim ke: ${email}`)
 
   } catch (error) {
-    console.error(`❌ ERROR DI SUBSCRIBER RESET PASSWORD:`, error)
+    console.error(`❌ ERROR SUBSCRIBER RESET PASSWORD:`, error)
   }
 }
 

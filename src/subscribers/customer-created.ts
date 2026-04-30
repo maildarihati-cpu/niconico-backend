@@ -10,7 +10,7 @@ export default async function customerCreatedHandler({
   container,
 }: SubscriberArgs<{ id: string }>) { 
   
-  console.log("🔥 EVENT TERTANGKAP: Kustomer baru dengan ID:", data.id)
+  
 
   try {
     // 1. CARA MEDUSA V2: Gunakan Module Service, bukan old service
@@ -41,7 +41,7 @@ export default async function customerCreatedHandler({
     console.log(`✅ Welcome email sukses dikirim ke: ${customer.email}`)
 
   } catch (error) {
-    console.error(`❌ ERROR DI SUBSCRIBER:`, error)
+    console.error(`❌ ERROR SUBSCRIBER:`, error)
   }
 }
 
