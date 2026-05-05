@@ -1,0 +1,4 @@
+{
+  "buildCommand": "npx medusa build",
+  "outputDirectory": "build/public/admin"
+}

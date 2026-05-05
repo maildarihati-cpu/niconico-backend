@@ -19,6 +19,7 @@ export default defineConfig({
   // --- BAGIAN PENYELAMAT: Mematikan Admin Dashboard di Railway ---
   admin: {
     disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
+    backendUrl: process.env.MEDUSA_BACKEND_URL
   },
 
   // 2. Registrasi Modules (HARUS BERUPA OBJECT DI MEDUSA V2)
