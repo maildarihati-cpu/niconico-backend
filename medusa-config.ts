@@ -7,10 +7,14 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      // CORS untuk frontend dan admin
-      storeCors: process.env.STORE_CORS || "http://localhost:8000,http://localhost:3000", 
-      adminCors: process.env.ADMIN_CORS || "http://localhost:7000,http://localhost:9000",
-      authCors: process.env.AUTH_CORS || "http://localhost:8000,http://localhost:3000",
+      // 🌟 JURUS SAKTI CORS: Hardcode langsung alamat domainnya
+      // Masukkan versi dengan dan tanpa garis miring (/)
+      storeCors: process.env.STORE_CORS || "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000", 
+      
+      adminCors: "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:7000,http://localhost:9000",
+      
+      authCors: "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:8000,http://localhost:3000",
+      
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
@@ -18,20 +22,17 @@ export default defineConfig({
 
   // --- KONFIGURASI ADMIN ---
   admin: {
-    // Logika: Hanya akan mati (disable) JIKA di .env secara eksplisit ditulis "true".
-    // Jika di .env lokal tidak ada, atau ditulis "false", maka Admin akan otomatis HIDUP.
     disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
     
-    // Pastikan backend URL ada fallback ke localhost jika .env kosong
-    backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
+    // 🌟 Pastikan mengarah ke URL Railway kamu (tanpa garis miring di akhir)
+    backendUrl: process.env.MEDUSA_BACKEND_URL || "https://niconico-backend-production.up.railway.app",
     
-    // 🌟 INI RACIKANNYA: Wajib "/" karena kamu deploy di subdomain khusus Vercel
+    // 🌟 OBAT BLANK PUTIH: Wajib "/" kalau pakai subdomain sendiri di Vercel
     path: "/", 
   },
 
   // --- REGISTRASI MODULES ---
   modules: {
-    // Module A: Cloudflare R2 (S3)
     file: {
       resolve: "@medusajs/medusa/file",
       options: {
@@ -54,19 +55,9 @@ export default defineConfig({
         ],
       },
     },
-
-    // Module B: Custom Modules Niconico Resort
-    reviews: {
-      resolve: "./src/modules/reviews",
-    },
-    myob: {
-      resolve: "./src/modules/myob",
-    },
-    hero: {
-      resolve: "./src/modules/hero",
-    },
-    storeLocation: {
-      resolve: "./src/modules/store-location",
-    },
+    reviews: { resolve: "./src/modules/reviews" },
+    myob: { resolve: "./src/modules/myob" },
+    hero: { resolve: "./src/modules/hero" },
+    storeLocation: { resolve: "./src/modules/store-location" },
   }
 })
