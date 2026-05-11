@@ -1,13 +1,13 @@
 import { loadEnv, defineConfig } from '@medusajs/framework/utils'
 
-// Memuat file .env Anda
+// Memuat file .env
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      // Saran: Masukkan URL Vercel kamu di sini nanti agar tidak kena blokir CORS
+      // CORS untuk frontend dan admin
       storeCors: process.env.STORE_CORS || "http://localhost:8000,http://localhost:3000", 
       adminCors: process.env.ADMIN_CORS || "http://localhost:7000,http://localhost:9000",
       authCors: process.env.AUTH_CORS || "http://localhost:8000,http://localhost:3000",
@@ -16,17 +16,22 @@ export default defineConfig({
     }
   },
 
-  // --- BAGIAN PENYELAMAT: Mematikan Admin Dashboard di Railway ---
+  // --- KONFIGURASI ADMIN ---
   admin: {
+    // Logika: Hanya akan mati (disable) JIKA di .env secara eksplisit ditulis "true".
+    // Jika di .env lokal tidak ada, atau ditulis "false", maka Admin akan otomatis HIDUP.
     disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
-    backendUrl: process.env.MEDUSA_BACKEND_URL,
+    
+    // Pastikan backend URL ada fallback ke localhost jika .env kosong
+    backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
+    
     // 👇👇 INI OBATNYA SAY BIAR GAK BLANK PUTIH 👇👇
-    path: "/", 
+    path: "/app", 
   },
 
-  // 2. Registrasi Modules (HARUS BERUPA OBJECT DI MEDUSA V2)
+  // --- REGISTRASI MODULES ---
   modules: {
-    // --- MODULE A: Cloudflare R2 (S3) ---
+    // Module A: Cloudflare R2 (S3)
     file: {
       resolve: "@medusajs/medusa/file",
       options: {
@@ -50,7 +55,7 @@ export default defineConfig({
       },
     },
 
-    // --- MODULE B: Custom Modules ---
+    // Module B: Custom Modules Niconico Resort
     reviews: {
       resolve: "./src/modules/reviews",
     },
