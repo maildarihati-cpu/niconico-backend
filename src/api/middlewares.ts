@@ -1,7 +1,26 @@
-import { defineMiddlewares } from "@medusajs/framework/http"
+import { 
+  defineMiddlewares, 
+  type MedusaNextFunction, 
+  type MedusaRequest, 
+  type MedusaResponse 
+} from "@medusajs/framework/http"
 import multer from "multer"
 
 const upload = multer({ storage: multer.memoryStorage() })
+
+// 🌟 OBAT MUJARAB 401 UNAUTHORIZED: Paksa server merasa sedang pakai HTTPS
+const forceHttpsProtocol = (
+  req: MedusaRequest,
+  res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  if (process.env.NODE_ENV === "production") {
+    Object.defineProperty(req, "protocol", {
+      get: () => "https",
+    })
+  }
+  next()
+}
 
 // Resep CORS Sapu Jagat (Otomatis nerima tamu dari Vercel maupun Localhost tanpa ribet ngecek .env)
 const corsMiddleware = (req: any, res: any, next: any) => {
@@ -22,6 +41,11 @@ const corsMiddleware = (req: any, res: any, next: any) => {
 
 export default defineMiddlewares({
   routes: [
+    {
+      // 🌟 TERAPKAN KE SEMUA RUTE: Biar proses login bawaan Medusa dapet Cookie yang bener
+      matcher: "/*",
+      middlewares: [forceHttpsProtocol],
+    },
     {
       // 1. Izin CORS untuk MYOB
       matcher: "/myob*", 
