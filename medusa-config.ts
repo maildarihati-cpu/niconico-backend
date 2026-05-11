@@ -25,8 +25,8 @@ export default defineConfig({
     // Pastikan backend URL ada fallback ke localhost jika .env kosong
     backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
     
-    // 👇👇 INI OBATNYA SAY BIAR GAK BLANK PUTIH 👇👇
-    path: "/app", 
+    // 🌟 INI RACIKANNYA: Wajib "/" karena kamu deploy di subdomain khusus Vercel
+    path: "/", 
   },
 
   // --- REGISTRASI MODULES ---
