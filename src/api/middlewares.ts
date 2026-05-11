@@ -1,38 +1,24 @@
-import { 
-  defineMiddlewares, 
-  type MedusaNextFunction, 
-  type MedusaRequest, 
-  type MedusaResponse 
-} from "@medusajs/framework/http"
+import { defineMiddlewares } from "@medusajs/framework/http"
 import multer from "multer"
 
 const upload = multer({ storage: multer.memoryStorage() })
 
-// 🌟 OBAT MUJARAB 401 UNAUTHORIZED: Paksa server merasa sedang pakai HTTPS
-const forceHttpsProtocol = (
-  req: MedusaRequest,
-  res: MedusaResponse,
-  next: MedusaNextFunction
-) => {
-  if (process.env.NODE_ENV === "production") {
-    Object.defineProperty(req, "protocol", {
-      get: () => "https",
-    })
-  }
-  next()
+// 🌟 OBAT 1: Paksa server ngaku pakai HTTPS (Biar Cookie KTP nggak ditolak)
+const forceHttpsProtocol = (req: any, res: any, next: any) => {
+  req.headers["x-forwarded-proto"] = "https";
+  next();
 }
 
-// Resep CORS Sapu Jagat (Otomatis nerima tamu dari Vercel maupun Localhost tanpa ribet ngecek .env)
+// 🌟 OBAT 2: CORS Sapu Jagat (Brute Force Semua Tamu Diizinkan)
 const corsMiddleware = (req: any, res: any, next: any) => {
-  // Ambil nama asal yang ngetok pintu, kalau kosong kasih bintang (*)
   const origin = req.headers.origin || "*";
   
-  // Kasih stempel izin langsung pakai nama si tamu
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-publishable-api-key, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-publishable-api-key, Authorization, x-medusa-access-token, Accept");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   
+  // Kalau browser cuma nanya izin (OPTIONS preflight), langsung tembak OK!
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -42,9 +28,9 @@ const corsMiddleware = (req: any, res: any, next: any) => {
 export default defineMiddlewares({
   routes: [
     {
-      // 🌟 TERAPKAN KE SEMUA RUTE: Biar proses login bawaan Medusa dapet Cookie yang bener
+      // 🚀 HAJAR SEMUA RUTE (Termasuk rute bawaan Medusa yang rewel)
       matcher: "/*",
-      middlewares: [forceHttpsProtocol],
+      middlewares: [forceHttpsProtocol, corsMiddleware],
     },
     {
       // 1. Izin CORS untuk MYOB
