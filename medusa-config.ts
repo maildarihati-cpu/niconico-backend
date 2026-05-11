@@ -7,14 +7,10 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      // 🌟 JURUS SAKTI CORS: Hardcode langsung alamat domainnya
-      // Masukkan versi dengan dan tanpa garis miring (/)
-      storeCors: process.env.STORE_CORS || "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000", 
-      
-      adminCors: "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:7000,http://localhost:9000",
-      
-      authCors: "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:8000,http://localhost:3000",
-      
+      // 🌟 Gabungan domain lokal & live biar aman di semua tempat
+      storeCors: process.env.STORE_CORS || "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000",
+      adminCors: process.env.ADMIN_CORS || "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:7000,http://localhost:9000",
+      authCors: process.env.AUTH_CORS || "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:8000,http://localhost:3000",
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
@@ -24,11 +20,11 @@ export default defineConfig({
   admin: {
     disable: process.env.DISABLE_MEDUSA_ADMIN === "true",
     
-    // 🌟 Pastikan mengarah ke URL Railway kamu (tanpa garis miring di akhir)
-    backendUrl: process.env.MEDUSA_BACKEND_URL || "https://niconico-backend-production.up.railway.app",
+    // Default fallback ke localhost kalau di laptop, ambil dari .env kalau di Railway
+    backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
     
-    // 🌟 OBAT BLANK PUTIH: Wajib "/" kalau pakai subdomain sendiri di Vercel
-    path: "/", 
+    // 🌟 WAJIB /app: Biar rute API Frontend gak ketimpa sama HTML Admin
+    path: "/app", 
   },
 
   // --- REGISTRASI MODULES ---

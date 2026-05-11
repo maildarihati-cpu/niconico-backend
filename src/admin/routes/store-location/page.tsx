@@ -1,9 +1,12 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Button, Table, Text, FocusModal, Label, Input, Textarea, toast, Avatar, Switch } from "@medusajs/ui"
 import { MapPin, Plus, Trash, Pencil, Image as ImageIcon } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 // Sesuaikan path import MediaLibrary bos
 import { MediaLibrary } from "../../components/media-library" 
+
+// 🌟 Dapatkan URL Backend dari Environment Variable
+const BACKEND_URL = process.env.MEDUSA_ADMIN_BACKEND_URL || "http://localhost:9000"
 
 const StoreLocationsAdmin = () => {
   const [stores, setStores] = useState<any[]>([])
@@ -22,19 +25,18 @@ const StoreLocationsAdmin = () => {
     is_featured: false
   })
 
-  // GET DATA
-  const fetchStores = async () => {
+  // GET DATA (🌟 Pakai BACKEND_URL)
+  const fetchStores = useCallback(async () => {
     try {
-      // Pastikan bos udah bikin route GET di src/api/admin/store-locations/route.ts
-      const res = await fetch("http://localhost:9000/admin/store-location")
+      const res = await fetch(`${BACKEND_URL}/admin/store-location`)
       const data = await res.json()
       setStores(data.store_locations || [])
     } catch (err) {
       console.error("Gagal ambil data store", err)
     }
-  }
+  }, [])
 
-  useEffect(() => { fetchStores() }, [])
+  useEffect(() => { fetchStores() }, [fetchStores])
 
   // BUKA MODAL EDIT
   const handleEdit = (store: any) => {
@@ -52,7 +54,7 @@ const StoreLocationsAdmin = () => {
     setIsOpen(true)
   }
 
-  // SAVE / UPDATE DATA
+  // SAVE / UPDATE DATA (🌟 Pakai BACKEND_URL)
   const handleSave = async () => {
     if (!formData.name) return toast.error("Store Name required!")
     if (!formData.address) return toast.error("Address required!")
@@ -61,8 +63,8 @@ const StoreLocationsAdmin = () => {
     setLoading(true)
     try {
       const url = editingId 
-        ? `http://localhost:9000/admin/store-location/${editingId}` 
-        : "http://localhost:9000/admin/store-location"
+        ? `${BACKEND_URL}/admin/store-location/${editingId}` 
+        : `${BACKEND_URL}/admin/store-location`
       
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
@@ -84,11 +86,11 @@ const StoreLocationsAdmin = () => {
     }
   }
 
-  // DELETE DATA
+  // DELETE DATA (🌟 Pakai BACKEND_URL)
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus store ini?")) return
     try {
-      await fetch(`http://localhost:9000/admin/store-location/${id}`, { method: "DELETE" })
+      await fetch(`${BACKEND_URL}/admin/store-location/${id}`, { method: "DELETE" })
       toast.success("Store Deleted")
       fetchStores()
     } catch (err) {
@@ -96,25 +98,24 @@ const StoreLocationsAdmin = () => {
     }
   }
 
-  // TOGGLE FEATURED (Limit Max 3)
+  // TOGGLE FEATURED (🌟 Pakai BACKEND_URL)
   const handleToggleFeatured = async (store: any, checked: boolean) => {
     const currentFeatured = stores.filter(s => s.is_featured).length;
     
-    // Validasi Frontend: Kalau mau nyalain tapi udah 3, tolak!
     if (checked && currentFeatured >= 3) {
         toast.error("Limit Reached! Max 3 stores can be featured.");
         return;
     }
 
     try {
-        const res = await fetch(`http://localhost:9000/admin/store-location/${store.id}`, {
+        const res = await fetch(`${BACKEND_URL}/admin/store-location/${store.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ is_featured: checked })
         });
         if (!res.ok) throw new Error();
         toast.success(checked ? "Store Featured!" : "Store Un-featured");
-        fetchStores(); // Refresh tabel
+        fetchStores();
     } catch (err) {
         toast.error("Failed to update status");
     }
@@ -127,7 +128,6 @@ const StoreLocationsAdmin = () => {
   return (
     <Container className="flex flex-col gap-y-8 p-8 bg-ui-bg-base">
       
-      {/* HEADER CMS */}
       <div className="flex items-center justify-between border-b border-ui-border-base pb-6">
         <div>
           <Heading level="h1" className="flex items-center gap-2 font-bold tracking-tighter text-ui-fg-base uppercase">
@@ -163,11 +163,9 @@ const StoreLocationsAdmin = () => {
 
             <FocusModal.Body className="p-12 flex flex-col gap-y-10 max-w-4xl mx-auto w-full overflow-y-auto">
               
-              {/* PHOTO PICKERS (1 Besar, 2 Kecil) */}
               <div className="flex flex-col gap-y-4">
                 <Label className="uppercase font-bold text-[10px] tracking-[0.2em] text-ui-fg-subtle border-b pb-2">Store Gallery</Label>
                 <div className="grid grid-cols-3 gap-6">
-                  {/* MAIN IMAGE */}
                   <div className="col-span-1 flex flex-col gap-y-2">
                     <Label className="uppercase font-bold text-[10px] tracking-widest text-[#ED5725]">Main Image *</Label>
                     <MediaLibrary category="store" onSelect={(url) => setFormData(p => ({...p, image_main: url}))} trigger={
@@ -176,7 +174,6 @@ const StoreLocationsAdmin = () => {
                         </div>
                     } />
                   </div>
-                  {/* SUB IMAGES */}
                   <div className="col-span-2 grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-y-2">
                        <Label className="uppercase font-bold text-[10px] tracking-widest">Sub Image 1</Label>
@@ -198,7 +195,6 @@ const StoreLocationsAdmin = () => {
                 </div>
               </div>
 
-              {/* STORE DETAILS */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="flex flex-col gap-y-2">
                   <Label className="uppercase font-bold text-[10px] tracking-widest">Store Name (ex: CANGGU)</Label>
@@ -223,7 +219,6 @@ const StoreLocationsAdmin = () => {
           </FocusModal.Content>
       </FocusModal>
 
-      {/* TABLE */}
       <Table>
         <Table.Header>
           <Table.Row className="bg-ui-bg-subtle">

@@ -1,8 +1,11 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Button, Input, Label, Text, Divider, toast } from "@medusajs/ui"
 import { Plus, Image as ImageIcon, Trash, Save, LayoutDashboard, RefreshCcw } from "lucide-react" 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library" 
+
+// 🌟 Dapatkan URL Backend dari Environment Variable
+const BACKEND_URL = process.env.MEDUSA_ADMIN_BACKEND_URL || "http://localhost:9000"
 
 const HeroAdminPage = () => {
   const [slides, setSlides] = useState([])
@@ -10,19 +13,23 @@ const HeroAdminPage = () => {
   const [loading, setLoading] = useState(false)
   const MAX_SLIDES = 4
 
-  const fetchData = async () => {
-    const res = await fetch("http://localhost:9000/admin/hero")
-    const data = await res.json()
-    setSlides(data.heroes || [])
-    if(data.setting) setGlobalTitle(data.setting.global_title)
-  }
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/admin/hero`)
+      const data = await res.json()
+      setSlides(data.heroes || [])
+      if(data.setting) setGlobalTitle(data.setting.global_title)
+    } catch (err) {
+      console.error("Fetch Error:", err)
+    }
+  }, [])
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { fetchData() }, [fetchData])
 
   const saveGlobalTitle = async () => {
     setLoading(true)
     try {
-      await fetch("http://localhost:9000/admin/hero/settings", {
+      await fetch(`${BACKEND_URL}/admin/hero/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: globalTitle })
@@ -36,27 +43,39 @@ const HeroAdminPage = () => {
   }
 
   const addImageSlide = async (url: string) => {
-    await fetch("http://localhost:9000/admin/hero", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_url: url })
-    })
-    fetchData()
+    try {
+      await fetch(`${BACKEND_URL}/admin/hero`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: url })
+      })
+      fetchData()
+    } catch (err) {
+      toast.error("Failed to add slide")
+    }
   }
 
   const updateImageSlide = async (id: string, url: string) => {
-    await fetch(`http://localhost:9000/admin/hero/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_url: url })
-    })
-    fetchData()
+    try {
+      await fetch(`${BACKEND_URL}/admin/hero/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: url })
+      })
+      fetchData()
+    } catch (err) {
+      toast.error("Failed to update slide")
+    }
   }
 
   const deleteSlide = async (id: string) => {
     if(!confirm("Remove this slide?")) return
-    await fetch(`http://localhost:9000/admin/hero/${id}`, { method: "DELETE" })
-    fetchData()
+    try {
+      await fetch(`${BACKEND_URL}/admin/hero/${id}`, { method: "DELETE" })
+      fetchData()
+    } catch (err) {
+      toast.error("Failed to delete slide")
+    }
   }
 
   return (
@@ -70,7 +89,6 @@ const HeroAdminPage = () => {
         </div>
       </div>
 
-      {/* FIX 1: Hapus bg-white, ganti jadi bg-ui-bg-base (Auto Dark/Light Mode) */}
       <div className="bg-ui-bg-base border border-ui-border-base rounded-xl p-6 shadow-sm">
         <Label className="text-xs font-semibold uppercase tracking-widest text-ui-fg-subtle mb-4 block">
           Central Branding Text
@@ -90,7 +108,6 @@ const HeroAdminPage = () => {
 
       <Divider className="border-ui-border-base" />
 
-      {/* SECTION 2: SLIDE IMAGES */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <Heading level="h2" className="text-lg font-bold text-ui-fg-base">Background Slides ({slides.length}/{MAX_SLIDES})</Heading>
@@ -106,7 +123,6 @@ const HeroAdminPage = () => {
             <div key={slide.id} className="relative aspect-[9/14] rounded-xl overflow-hidden group border border-ui-border-base shadow-sm hover:shadow-md transition-all bg-ui-bg-subtle">
               <img src={slide.image_url} className="w-full h-full object-cover" alt="Banner" />
               
-              {/* FIX 2: Overlay jangan bg-white, ganti ke bg-ui-bg-base/90 biar kontras */}
               <div className="absolute inset-0 bg-ui-bg-base/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-3 transition-opacity p-4 backdrop-blur-sm">
                 <MediaLibrary 
                    onSelect={(url) => updateImageSlide(slide.id, url)} 

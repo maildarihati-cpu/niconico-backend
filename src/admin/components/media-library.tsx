@@ -2,6 +2,10 @@ import { Button, FocusModal, Heading, Text, toast } from "@medusajs/ui"
 import { Image as ImageIcon, UploadCloud, CheckCircle2, Loader2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
+// 🌟 Dapatkan URL Backend dari Environment Variable
+// Di Medusa Admin (Vite), biasanya pakai MEDUSA_ADMIN_BACKEND_URL
+const BACKEND_URL = process.env.MEDUSA_ADMIN_BACKEND_URL || "http://localhost:9000"
+
 interface HeroFile {
   id: string
   image_url: string
@@ -23,9 +27,11 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
   const fetchFiles = useCallback(async () => {
     setLoading(true)
     try {
+      // 🌟 URL sekarang dinamis mengikuti environment
+      const baseUrl = `${BACKEND_URL}/admin/hero`
       const url = category 
-        ? `http://localhost:9000/admin/hero?category=${category}`
-        : `http://localhost:9000/admin/hero`
+        ? `${baseUrl}?category=${category}`
+        : baseUrl
         
       const res = await fetch(url)
       const data = await res.json()
@@ -51,13 +57,14 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
     formData.append("category", category || "hero-banner")
 
     try {
-      const res = await fetch("http://localhost:9000/admin/hero/upload", {
+      // 🌟 URL upload juga sekarang dinamis
+      const res = await fetch(`${BACKEND_URL}/admin/hero/upload`, {
         method: "POST",
         body: formData
       })
       const data = await res.json()
       if (data.url) {
-        setSelectedUrl(data.url) // Otomatis pilih yang baru di-upload
+        setSelectedUrl(data.url)
         fetchFiles()
         toast.success("Image uploaded successfully!")
       }
@@ -68,11 +75,10 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
     }
   }
 
-  // 3. Fungsi Confirm (Ini yang kirim data ke Parent)
+  // 3. Fungsi Confirm
   const handleConfirm = () => {
     if (!selectedUrl) return
     onSelect(selectedUrl)
-    // Cara menutup modal FocusModal secara programatik
     const event = new KeyboardEvent('keydown', { key: 'Escape' });
     document.dispatchEvent(event);
   }

@@ -1,8 +1,11 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Button, Table, Text, FocusModal, Label, Input, Textarea, Select, toast, Avatar } from "@medusajs/ui"
 import { MessageSquareQuote, Plus, Trash, Pencil, Image as ImageIcon, Star } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library"
+
+// 🌟 Dapatkan URL Backend dari Environment Variable
+const BACKEND_URL = process.env.MEDUSA_ADMIN_BACKEND_URL || "http://localhost:9000"
 
 // --- DATABASE BENDERA & NEGARA LENGKAP (WP STYLE) ---
 const countries = [
@@ -44,17 +47,18 @@ const StoryTellerAdmin = () => {
     image_url: ""
   })
 
-  const fetchReviews = async () => {
+  // 1. Fetch Data (Ganti localhost)
+  const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:9000/admin/reviews")
+      const res = await fetch(`${BACKEND_URL}/admin/reviews`)
       const data = await res.json()
       setReviews(data.reviews || [])
     } catch (err) {
       console.error("Gagal ambil data review", err)
     }
-  }
+  }, [])
 
-  useEffect(() => { fetchReviews() }, [])
+  useEffect(() => { fetchReviews() }, [fetchReviews])
 
   const handleEdit = (rev: any) => {
     setEditingId(rev.id)
@@ -69,13 +73,14 @@ const StoryTellerAdmin = () => {
     setIsOpen(true)
   }
 
+  // 2. Save Data (Ganti localhost)
   const handleSave = async () => {
     if (!formData.image_url) return toast.error("Select photo first!")
     setLoading(true)
     try {
       const url = editingId 
-        ? `http://localhost:9000/admin/reviews/${editingId}` 
-        : "http://localhost:9000/admin/reviews"
+        ? `${BACKEND_URL}/admin/reviews/${editingId}` 
+        : `${BACKEND_URL}/admin/reviews`
       
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
@@ -97,11 +102,16 @@ const StoryTellerAdmin = () => {
     }
   }
 
+  // 3. Delete Data (Ganti localhost)
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus cerita kustomer ini?")) return
-    await fetch(`http://localhost:9000/admin/reviews/${id}`, { method: "DELETE" })
-    toast.success("Deleted")
-    fetchReviews()
+    try {
+      await fetch(`${BACKEND_URL}/admin/reviews/${id}`, { method: "DELETE" })
+      toast.success("Deleted")
+      fetchReviews()
+    } catch (err) {
+      toast.error("Delete failed")
+    }
   }
 
   return (
@@ -143,7 +153,6 @@ const StoryTellerAdmin = () => {
 
             <FocusModal.Body className="p-12 flex flex-col gap-y-8 max-w-3xl mx-auto w-full">
               
-              {/* PHOTO PICKER */}
               <div className="flex flex-col gap-y-3">
                 <Label className="uppercase font-bold text-[10px] tracking-[0.2em] text-ui-fg-subtle">Customer Portrait</Label>
                 <MediaLibrary category="reviews" onSelect={(url) => setFormData(p => ({...p, image_url: url}))} trigger={
@@ -157,7 +166,6 @@ const StoryTellerAdmin = () => {
                 } />
               </div>
 
-              {/* DETAILS */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="flex flex-col gap-y-2">
                   <Label className="uppercase font-bold text-[10px] tracking-widest">Full Name</Label>
@@ -194,7 +202,6 @@ const StoryTellerAdmin = () => {
           </FocusModal.Content>
       </FocusModal>
 
-      {/* TABLE */}
       <Table>
         <Table.Header>
           <Table.Row className="bg-ui-bg-subtle">
