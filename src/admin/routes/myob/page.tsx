@@ -3,11 +3,15 @@ import { Container, Heading, Text, Button, Input, Select, Textarea, toast, Tabs 
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { BuildingStorefront } from "@medusajs/icons";
 
+// Deteksi otomatis URL Backend (Local vs Live)
+// Ganti fallback "https://api.niconicoresort.com" dengan URL Railway Bos
+const BACKEND_URL = import.meta.env.VITE_MEDUSA_BACKEND_URL || 
+                    (typeof window !== "undefined" && window.location.hostname === "localhost" ? "" : "https://niconico-backend.up.railway.app");
+
 export default function MyobAdminPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   
-  // State Upload & Gallery
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [galleryFiles, setGalleryFiles] = useState<any[]>([]);
   const [isLoadingGallery, setIsLoadingGallery] = useState(false);
@@ -27,12 +31,16 @@ export default function MyobAdminPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/admin/myob?t=${new Date().getTime()}`);
+        const response = await fetch(`${BACKEND_URL}/admin/myob?t=${new Date().getTime()}`, {
+          method: "GET",
+          credentials: "include", // Wajib agar session/cookie admin tidak diblokir di live
+        });
+        
+        if (!response.ok) throw new Error("Gagal tarik data");
         const data = await response.json();
         
         if (data.myob_content) {
           const db = data.myob_content;
-          // TERJEMAHKAN KEMBALI: Backend (Ular) -> Frontend (Unta)
           setFormData({
             contentType: db.content_type || "image",
             mediaUrl: db.media_url || "",
@@ -52,17 +60,20 @@ export default function MyobAdminPage() {
     fetchData();
   }, []);
 
-  // Fungsi Tarik Galeri
   const fetchGallery = async () => {
-    setIsLoadingGallery(true); // <--- 1. NYALAKAN LOADING DI SINI
+    setIsLoadingGallery(true);
     try {
-      const res = await fetch("/admin/myob/media");
+      const res = await fetch(`${BACKEND_URL}/admin/myob/media`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Gagal tarik galeri");
       const data = await res.json();
       setGalleryFiles(data.files || []);
     } catch (error) {
       console.error(error);
     } finally {
-      setIsLoadingGallery(false); // <--- 2. MATIKAN LOADING DI SINI
+      setIsLoadingGallery(false);
     }
   };
 
@@ -71,7 +82,6 @@ export default function MyobAdminPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Upload ke Folder myob/
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetField: "mediaUrl" | "posterUrl") => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -82,18 +92,18 @@ export default function MyobAdminPage() {
       const uploadData = new FormData();
       uploadData.append("files", file);
 
-      // Tembak ke API Tahap 1 kita
-      const response = await fetch("/admin/myob/upload", {
+      const response = await fetch(`${BACKEND_URL}/admin/myob/upload`, {
         method: "POST",
+        credentials: "include",
         body: uploadData, 
       });
 
       if (!response.ok) throw new Error("Gagal upload");
-      const data = await response.json();
       
+      const data = await response.json();
       setFormData((prev) => ({ ...prev, [targetField]: data.files[0].url }));
-      toast.success("Upload Berhasil", { description: "File masuk ke folder myob/" });
-    } catch (error) {
+      toast.success("Upload Berhasil!");
+    } catch (error: any) {
       toast.error("Upload Gagal");
     } finally {
       if (targetField === "mediaUrl") setIsUploadingMedia(false);
@@ -101,12 +111,10 @@ export default function MyobAdminPage() {
     }
   };
 
-  // Simpan ke Supabase
   const handleSave = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // 1. TERJEMAHKAN BAHASA FRONTEND KE BACKEND (Snake Case)
       const payload = {
         content_type: formData.contentType,
         media_url: formData.mediaUrl,
@@ -117,20 +125,14 @@ export default function MyobAdminPage() {
         button_link: formData.buttonLink,
       };
 
-      // 2. KIRIM DATA YANG SUDAH DITERJEMAHKAN
-      const response = await fetch(`/admin/myob`, {
+      const response = await fetch(`${BACKEND_URL}/admin/myob`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload), 
       });
 
-      if (!response.ok) {
-        // Biar kalau gagal lagi, kita tahu persis alasannya dari backend
-        const errData = await response.json();
-        console.error("Alasan Backend Menolak:", errData);
-        throw new Error("Gagal menyimpan");
-      }
-      
+      if (!response.ok) throw new Error("Gagal menyimpan");
       toast.success("Berhasil Disimpan!");
     } catch (error) {
       toast.error("Gagal Menyimpan");
@@ -160,10 +162,8 @@ export default function MyobAdminPage() {
           </Select>
         </div>
 
-        {/* MEDIA MANAGER (TAB SYSTEM) */}
         <div className="border border-ui-border-base rounded-lg p-4 bg-ui-bg-subtle">
           <Text size="small" weight="plus" className="mb-4">Media Manager (Main File)</Text>
-          
           <Tabs defaultValue="upload" onValueChange={(val) => { if (val === 'gallery') fetchGallery() }}>
             <Tabs.List>
               <Tabs.Trigger value="upload">Upload Baru</Tabs.Trigger>
@@ -179,48 +179,39 @@ export default function MyobAdminPage() {
 
             <Tabs.Content value="gallery" className="pt-4">
                 {isLoadingGallery ? (
-                 <div className="flex justify-center p-8"><Text className="animate-pulse">Sedang memuat gambar dari Supabase...</Text></div>
+                 <div className="flex justify-center p-8"><Text className="animate-pulse">Memuat galeri...</Text></div>
               ) : (
                  <div className="grid grid-cols-3 gap-4 max-h-64 overflow-y-auto p-2">
-                   {/* ... kodingan gambar galleryFiles.map yang tadi ... */}
+                   {galleryFiles.length === 0 ? <Text className="text-ui-fg-muted">Galeri kosong.</Text> : 
+                     galleryFiles.map((f, i) => (
+                       <div 
+                         key={i} 
+                         onClick={() => setFormData(prev => ({...prev, mediaUrl: f.url}))}
+                         className={`relative cursor-pointer border rounded flex flex-col items-center justify-center overflow-hidden h-24 transition-all hover:border-blue-500
+                           ${formData.mediaUrl === f.url ? 'border-blue-500 ring-2 ring-blue-500' : 'border-ui-border-base'}`}
+                       >
+                         {f.url.toLowerCase().endsWith('.mp4') ? (
+                            <video src={f.url} className="absolute inset-0 w-full h-full object-cover" />
+                         ) : (
+                            <img src={f.url} alt="Gallery" className="absolute inset-0 w-full h-full object-cover" />
+                         )}
+                         {formData.mediaUrl === f.url && (
+                           <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center z-10">
+                              <div className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">Terpilih</div>
+                           </div>
+                         )}
+                       </div>
+                     ))
+                   }
                  </div>
               )}
-              <div className="grid grid-cols-3 gap-4 max-h-64 overflow-y-auto p-2">
-                {galleryFiles.length === 0 ? <Text className="text-ui-fg-muted">Galeri kosong.</Text> : 
-                  galleryFiles.map((f, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => setFormData(prev => ({...prev, mediaUrl: f.url}))}
-                      className={`relative cursor-pointer border rounded flex flex-col items-center justify-center overflow-hidden h-24 transition-all hover:border-blue-500
-                        ${formData.mediaUrl === f.url ? 'border-blue-500 ring-2 ring-blue-500' : 'border-ui-border-base'}`}
-                    >
-                      {/* INI DIA MANTRA UNTUK MEMUNCULKAN GAMBARNYA */}
-                      {f.url.toLowerCase().endsWith('.mp4') ? (
-                         <video src={f.url} className="absolute inset-0 w-full h-full object-cover" />
-                      ) : (
-                         <img src={f.url} alt="Gallery" className="absolute inset-0 w-full h-full object-cover" />
-                      )}
-
-                      {/* Label Terpilih */}
-                      {formData.mediaUrl === f.url && (
-                        <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center z-10">
-                           <div className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">Terpilih</div>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                }
-              </div>
             </Tabs.Content>
           </Tabs>
-
           <div className="mt-4 pt-4 border-t border-ui-border-base flex flex-col gap-1">
             <Text size="xsmall" weight="plus">File Aktif Saat Ini:</Text>
             <Text size="xsmall" className="text-emerald-600 truncate">{formData.mediaUrl || "Belum ada"}</Text>
           </div>
         </div>
-
-        <div className="h-px w-full bg-ui-border-base my-2"></div>
 
         <div className="flex flex-col gap-y-2">
           <Text size="small" weight="plus">Judul Utama (Heading)</Text>
@@ -239,17 +230,10 @@ export default function MyobAdminPage() {
             <Input name="buttonLink" placeholder="/link-tujuan" value={formData.buttonLink} onChange={handleChange} />
           </div>
         </div>
-
       </div>
 
       <div className="flex justify-end pt-4">
-        <Button 
-          type="button" 
-          variant="primary" 
-          size="base" 
-          isLoading={isLoading} 
-          onClick={handleSave}
-        >
+        <Button type="button" variant="primary" size="base" isLoading={isLoading} onClick={handleSave}>
           Simpan Perubahan
         </Button>
       </div>

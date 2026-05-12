@@ -1,51 +1,48 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const myobService = req.scope.resolve("myob")
-    const existing = await myobService.listMyobs()
+    const myobService = req.scope.resolve("myob") as any; 
     
-    console.log(`[MYOB Admin GET] Tarik data myob: ${existing.length} record(s)`)
-
-    if (existing.length > 0) {
-      console.log("[MYOB Admin GET] Data ditemukan, mengirim ke frontend")
-      return res.status(200).json({ myob_content: existing[0] })
-    }
+    // Gunakan fungsi otomatis bawaan Medusa V2
+    const myobs = await myobService.listMyobs();
     
-    console.log("[MYOB Admin GET] Database myob kosong (first fetch)")
-    return res.status(200).json({ myob_content: null })
+    // Karena konten MYOB biasanya cuma 1 baris di database, ambil index ke-0
+    const content = myobs && myobs.length > 0 ? myobs[0] : null;
+    
+    res.status(200).json({ myob_content: content || {} })
   } catch (error) {
-    console.error("[MYOB Admin GET Error] Gagal tarik data:", error)
-    return res.status(500).json({ error: "Gagal menarik data", details: String(error) })
+    res.status(500).json({ message: "Gagal memuat konten MYOB", error: String(error) })
   }
 }
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
+  res.setHeader("Content-Type", "application/json");
   try {
-    const myobService = req.scope.resolve("myob")
-    const payload = req.body as any
+    const myobService = req.scope.resolve("myob") as any; 
     
-    console.log("[MYOB Admin POST] Payload diterima:", JSON.stringify(payload).substring(0, 100))
+    // OBAT TYPESCRIPT: Tegaskan bahwa req.body adalah tipe Object
+    const payload = req.body as Record<string, any>; 
+    
+    // Cek apakah data MYOB sudah ada di database
+    const existingMyobs = await myobService.listMyobs();
+    let updatedContent;
 
-    const existing = await myobService.listMyobs()
-    let result;
-
-    // Kalau data sudah ada, kita Update. Kalau belum ada, kita Create.
-    if (existing.length > 0) {
-      console.log(`[MYOB Admin POST] Update existing myob (id: ${existing[0].id})`)
-      result = await myobService.updateMyobs({
-        id: existing[0].id,
+    if (existingMyobs && existingMyobs.length > 0) {
+      // Kalau sudah ada, kita UPDATE data yang ada
+      updatedContent = await myobService.updateMyobs({
+        id: existingMyobs[0].id,
         ...payload
-      })
+      });
     } else {
-      console.log("[MYOB Admin POST] Create new myob record")
-      result = await myobService.createMyobs(payload)
+      // Kalau database kosong, kita CREATE baru
+      updatedContent = await myobService.createMyobs(payload);
     }
-
-    console.log("[MYOB Admin POST] Berhasil save ke database")
-    return res.status(200).json({ success: true, data: result })
+    
+    res.status(200).json({ message: "Berhasil update", myob_content: updatedContent })
   } catch (error) {
-    console.error("[MYOB Admin POST Error] Gagal save:", error)
-    return res.status(500).json({ error: "Gagal menyimpan data", details: String(error) })
+    console.error("[MYOB Save Error]", error)
+    res.status(500).json({ message: "Gagal simpan konten", error: String(error) })
   }
 }

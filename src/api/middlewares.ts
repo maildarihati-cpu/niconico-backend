@@ -13,9 +13,16 @@ const forceHttpsProtocol = (req: any, res: any, next: any) => {
 
 // 🌟 OBAT 2: CORS Sapu Jagat (Berlaku di Local & Live)
 const corsMiddleware = (req: any, res: any, next: any) => {
-  const origin = req.headers.origin || "*";
+  const origin = req.headers.origin || ""; // Kosongkan dulu, jangan langsung kasih "*"
   
-  res.setHeader("Access-Control-Allow-Origin", origin);
+  // Perbaikan CORS Credentials: Tidak boleh "*" kalau Credentials "true"
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    // Kalau origin ga kebaca (biasanya hit dari server-to-server), fallback ke lokal/domain
+    res.setHeader("Access-Control-Allow-Origin", "http://localhost:9000"); 
+  }
+  
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
   
   // Sudah termasuk x-medusa-locale agar Admin live tidak error 401
@@ -44,6 +51,18 @@ export default defineMiddlewares({
       method: "OPTIONS",
       middlewares: [corsMiddleware],
     },
+    {
+      matcher: "/admin/myob/media",
+      method: "OPTIONS",
+      middlewares: [corsMiddleware],
+    },
+    // TAMBAHAN: Biar waktu klik tombol 'Simpan Perubahan' (POST /admin/myob) ga diblokir CORS preflight
+    {
+      matcher: "/admin/myob",
+      method: "OPTIONS",
+      middlewares: [corsMiddleware],
+    },
+    // RUTE HERO BOS YANG SEMPAT HILANG (SUDAH KEMBALI)
     {
       matcher: "/admin/hero/upload",
       method: "POST",
