@@ -1,44 +1,42 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { IFileModuleService } from "@medusajs/types"
 import { Modules } from "@medusajs/utils"
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  const fileModuleService: IFileModuleService = req.scope.resolve(Modules.FILE)
-  const heroService = req.scope.resolve("hero") as any
-  
-  const file = (req as any).file 
-  const category = (req.body as any)?.category || "hero-banner"
-
-  if (!file) {
-    return res.status(400).json({ message: "File kosong, Bos!" })
-  }
-
+  res.setHeader("Content-Type", "application/json");
   try {
-    // 🌟 PERBAIKAN: createFiles mengembalikan array
-    const uploadedFiles = await fileModuleService.createFiles({
+    const fileService = req.scope.resolve(Modules.FILE) as any;
+    const heroService = req.scope.resolve("hero") as any;
+    
+    const file = (req as any).file;
+    const category = (req.body as any)?.category || "hero-banner";
+
+    if (!file) return res.status(400).json({ message: "File kosong" });
+
+    // 🌟 PERBAIKAN: createFiles selalu format Array di v2
+    const uploadedFiles = await fileService.createFiles([{
       filename: file.originalname,
       mimeType: file.mimetype,
       content: file.buffer,
-    })
+    }]);
 
-    // Ambil file pertama dari array hasil upload
-    const resultFile = Array.isArray(uploadedFiles) ? uploadedFiles[0] : uploadedFiles
+    // Ambil dengan aman
+    const finalUrl = Array.isArray(uploadedFiles) ? uploadedFiles[0].url : uploadedFiles.url;
 
-    const existingInStore = await heroService.listHeroes({ category })
+    // Deteksi Method
+    const listMethod = typeof heroService.listHeroes === 'function' ? 'listHeroes' : 'listHeros';
+    const createMethod = typeof heroService.createHeroes === 'function' ? 'createHeroes' : 'createHeros';
+
+    const existing = await heroService[listMethod]({ category });
     
-    const heroRecord = await heroService.createHeroes({
-      image_url: resultFile.url, // Sekarang ambil .url dari index 0
+    const heroRecord = await heroService[createMethod]({
+      image_url: finalUrl,
       category: category,
-      position: existingInStore.length,
-    })
+      position: existing ? existing.length : 0,
+    });
 
-    return res.status(200).json({ 
-      success: true, 
-      url: heroRecord.image_url,
-      id: heroRecord.id
-    })
+    return res.status(200).json({ success: true, url: heroRecord.image_url, id: heroRecord.id })
   } catch (error) {
-    console.error("Hero Upload Error:", error)
-    return res.status(500).json({ message: "Gagal simpan ke database." })
+    console.error("Hero Upload Error:", error);
+    return res.status(500).json({ message: "Upload Gagal" })
   }
 }

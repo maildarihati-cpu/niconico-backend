@@ -4,9 +4,9 @@ import { Plus, Image as ImageIcon, Trash, Save, LayoutDashboard, RefreshCcw } fr
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library" 
 
-// 🌟 DETEKSI OTOMATIS: Sama seperti racikan MYOB kemarin
+// 🌟 URL PASTI AMAN
 const BACKEND_URL = import.meta.env.VITE_MEDUSA_BACKEND_URL || 
-                    (typeof window !== "undefined" && window.location.hostname === "localhost" ? "" : "https://api.niconicoresort.com")
+  (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:9000" : "https://api.niconicoresort.com")
 
 const HeroAdminPage = () => {
   const [slides, setSlides] = useState<any[]>([])
@@ -16,13 +16,11 @@ const HeroAdminPage = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      // 🌟 TAMBAHAN: Wajib bawa credentials biar bisa tembus CORS Vercel
       const res = await fetch(`${BACKEND_URL}/admin/hero`, {
         method: "GET",
         credentials: "include" 
       })
-      if (!res.ok) throw new Error("Gagal tarik data Hero")
-      
+      if (!res.ok) throw new Error("Gagal tarik data")
       const data = await res.json()
       setSlides(data.heroes || [])
       if(data.setting) setGlobalTitle(data.setting.global_title)
@@ -38,7 +36,7 @@ const HeroAdminPage = () => {
     try {
       await fetch(`${BACKEND_URL}/admin/hero/settings`, {
         method: "POST",
-        credentials: "include", // 🌟 WAJIB
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: globalTitle })
       })
@@ -54,7 +52,7 @@ const HeroAdminPage = () => {
     try {
       await fetch(`${BACKEND_URL}/admin/hero`, {
         method: "POST",
-        credentials: "include", // 🌟 WAJIB
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: url })
       })
@@ -66,12 +64,11 @@ const HeroAdminPage = () => {
 
   const updateImageSlide = async (id: string, url: string) => {
     try {
-      // Kita panggil POST ke /admin/hero dengan menyertakan ID
-      await fetch(`${BACKEND_URL}/admin/hero`, {
+      await fetch(`${BACKEND_URL}/admin/hero/${id}`, {
         method: "POST",
-        credentials: "include", // 🌟 WAJIB
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: id, image_url: url })
+        body: JSON.stringify({ image_url: url })
       })
       fetchData()
     } catch (err) {
@@ -82,10 +79,9 @@ const HeroAdminPage = () => {
   const deleteSlide = async (id: string) => {
     if(!confirm("Remove this slide?")) return
     try {
-      // 🌟 Pastikan DELETE nembak ke ID spesifik
       await fetch(`${BACKEND_URL}/admin/hero/${id}`, { 
         method: "DELETE",
-        credentials: "include" // 🌟 WAJIB
+        credentials: "include" 
       })
       fetchData()
     } catch (err) {
@@ -95,7 +91,6 @@ const HeroAdminPage = () => {
 
   return (
     <Container className="flex flex-col gap-y-8 p-8">
-      {/* UI Tetap Sama, Tidak Ada Yang Dirubah */}
       <div className="flex items-center justify-between border-b border-ui-border-base pb-4">
         <div>
           <Heading level="h1" className="flex items-center gap-2">
