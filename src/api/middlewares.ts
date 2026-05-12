@@ -16,13 +16,16 @@ const corsMiddleware = (req: any, res: any, next: any) => {
   const origin = req.headers.origin || "*";
   
   res.setHeader("Access-Control-Allow-Origin", origin);
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
   
   // Sudah termasuk x-medusa-locale agar Admin live tidak error 401
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-publishable-api-key, Authorization, x-medusa-access-token, Accept, x-medusa-locale");
   res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Max-Age", "86400");
   
+  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
+    console.log(`[CORS] Preflight OPTIONS untuk ${req.path}`)
     return res.status(200).end();
   }
   next();
@@ -30,20 +33,31 @@ const corsMiddleware = (req: any, res: any, next: any) => {
 
 export default defineMiddlewares({
   routes: [
-    {
-      // 🚀 Terapkan ke semua rute Medusa
-      matcher: "/*",
-      middlewares: [forceHttpsProtocol, corsMiddleware],
-    },
+    // ⭐ UPLOAD MIDDLEWARE HARUS DIDAHULUKAN (SPESIFIK DULU BARU GENERAL)
     {
       matcher: "/admin/myob/upload",
       method: "POST",
       middlewares: [upload.array("files") as any],
     },
     {
+      matcher: "/admin/myob/upload",
+      method: "OPTIONS",
+      middlewares: [corsMiddleware],
+    },
+    {
       matcher: "/admin/hero/upload",
       method: "POST",
       middlewares: [upload.single("file") as any],
+    },
+    {
+      matcher: "/admin/hero/upload",
+      method: "OPTIONS",
+      middlewares: [corsMiddleware],
+    },
+    {
+      // 🚀 Terapkan CORS & HTTPS ke semua rute Medusa (GENERAL PALING AKHIR)
+      matcher: "/*",
+      middlewares: [forceHttpsProtocol, corsMiddleware],
     },
   ],
 })
