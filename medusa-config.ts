@@ -24,7 +24,7 @@ export default defineConfig({
     backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
     
     // 🌟 WAJIB /app: Biar rute API Frontend gak ketimpa sama HTML Admin
-    path: "/", 
+    path: "/app", 
   },
 
   // --- REGISTRASI MODULES ---
