@@ -7,10 +7,10 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      // 🌟 URL dibersihkan dari garis miring (/) di bagian akhir
-      storeCors: process.env.STORE_CORS || "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000",
-      adminCors: process.env.ADMIN_CORS || "https://admin.niconicoresort.com,http://localhost:7000,http://localhost:9000",
-      authCors: process.env.AUTH_CORS || "https://admin.niconicoresort.com,http://localhost:8000,http://localhost:3000",
+      // 🌟 HARDCODE MUTLAK: Buang process.env agar tidak ada yang bisa meng-override dari luar
+      storeCors: "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000",
+      adminCors: "https://admin.niconicoresort.com,http://localhost:7000,http://localhost:9000",
+      authCors: "https://admin.niconicoresort.com,http://localhost:8000,http://localhost:3000",
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
@@ -22,7 +22,6 @@ export default defineConfig({
     
     // Default fallback ke localhost kalau di laptop, ambil dari .env kalau di Railway
     backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
-    
     // 🌟 WAJIB /app: Biar rute API Frontend gak ketimpa sama HTML Admin
     path: "/", 
   },
