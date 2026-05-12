@@ -1,33 +1,40 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { IFileModuleService } from "@medusajs/types"
+import { Modules } from "@medusajs/utils"
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   res.setHeader("Content-Type", "application/json");
+
+  // Pakai File Module standar Medusa V2
+  const fileModuleService: IFileModuleService = req.scope.resolve(Modules.FILE)
+  const myobService = req.scope.resolve("myob") as any;
+  
+  const files = (req as any).files;
+
+  if (!files || files.length === 0) {
+    return res.status(400).json({ message: "Tidak ada file yang diupload" })
+  }
+
   try {
-    const files = (req as any).files;
-    if (!files || files.length === 0) {
-      return res.status(400).json({ message: "Tidak ada file yang diupload" })
-    }
+    // Siapkan data file untuk diupload
+    const filePayloads = files.map((f: any) => ({
+      filename: f.originalname,
+      mimeType: f.mimetype,
+      content: f.buffer,
+    }));
 
-    const fileService = req.scope.resolve("file") as any; 
-    
-    const uploadedFiles = await Promise.all(
-      files.map(async (f: any) => {
-        // Medusa V2 pakai fungsi 'create' untuk file
-        return await fileService.create({
-          file: f.buffer,
-          fileName: f.originalname,
-        })
-      })
-    )
+    // createFiles selalu menghasilkan Array
+    const uploadedFiles = await fileModuleService.createFiles(filePayloads);
 
-    const myobService = req.scope.resolve("myob") as any; 
-    
-    // Gunakan fungsi bawaan Medusa V2 untuk model MyobGallery
+    // Ambil file pertama dengan aman
+    const firstFile = Array.isArray(uploadedFiles) ? uploadedFiles[0] : uploadedFiles;
+
     if (myobService.createMyobGalleries) {
-       await myobService.createMyobGalleries({ url: uploadedFiles[0].url })
+       await myobService.createMyobGalleries({ url: firstFile.url })
     }
 
-    res.status(200).json({ files: uploadedFiles })
+    // Kembalikan ke frontend dalam format array agar form bisa membacanya
+    res.status(200).json({ files: Array.isArray(uploadedFiles) ? uploadedFiles : [uploadedFiles] })
   } catch (error) {
     console.error("[MYOB Upload Error]", error)
     res.status(500).json({ message: "Upload Gagal", error: String(error) })

@@ -13,26 +13,20 @@ const forceHttpsProtocol = (req: any, res: any, next: any) => {
 
 // 🌟 OBAT 2: CORS Sapu Jagat (Berlaku di Local & Live)
 const corsMiddleware = (req: any, res: any, next: any) => {
-  const origin = req.headers.origin || ""; // Kosongkan dulu, jangan langsung kasih "*"
+  const origin = req.headers.origin || ""; 
   
-  // Perbaikan CORS Credentials: Tidak boleh "*" kalau Credentials "true"
   if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   } else {
-    // Kalau origin ga kebaca (biasanya hit dari server-to-server), fallback ke lokal/domain
     res.setHeader("Access-Control-Allow-Origin", "http://localhost:9000"); 
   }
   
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
-  
-  // Sudah termasuk x-medusa-locale agar Admin live tidak error 401
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-publishable-api-key, Authorization, x-medusa-access-token, Accept, x-medusa-locale");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Max-Age", "86400");
   
-  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    console.log(`[CORS] Preflight OPTIONS untuk ${req.path}`)
     return res.status(200).end();
   }
   next();
@@ -40,41 +34,54 @@ const corsMiddleware = (req: any, res: any, next: any) => {
 
 export default defineMiddlewares({
   routes: [
-    // ⭐ UPLOAD MIDDLEWARE HARUS DIDAHULUKAN (SPESIFIK DULU BARU GENERAL)
+    // ⭐ 1. UPLOAD MIDDLEWARES (HARUS POST)
+    // Pastikan corsMiddleware masuk ke dalam array middlewares SEBELUM multer
     {
       matcher: "/admin/myob/upload",
       method: "POST",
-      middlewares: [upload.array("files") as any],
+      middlewares: [corsMiddleware, upload.array("files") as any],
     },
-    {
-      matcher: "/admin/myob/upload",
-      method: "OPTIONS",
-      middlewares: [corsMiddleware],
-    },
-    {
-      matcher: "/admin/myob/media",
-      method: "OPTIONS",
-      middlewares: [corsMiddleware],
-    },
-    // TAMBAHAN: Biar waktu klik tombol 'Simpan Perubahan' (POST /admin/myob) ga diblokir CORS preflight
-    {
-      matcher: "/admin/myob",
-      method: "OPTIONS",
-      middlewares: [corsMiddleware],
-    },
-    // RUTE HERO BOS YANG SEMPAT HILANG (SUDAH KEMBALI)
     {
       matcher: "/admin/hero/upload",
       method: "POST",
-      middlewares: [upload.single("file") as any],
+      middlewares: [corsMiddleware, upload.single("file") as any],
     },
     {
-      matcher: "/admin/hero/upload",
+      matcher: "/admin/reviews/upload",
+      method: "POST",
+      middlewares: [corsMiddleware, upload.single("file") as any],
+    },
+    {
+      matcher: "/admin/store-location/upload",
+      method: "POST",
+      middlewares: [corsMiddleware, upload.single("file") as any],
+    },
+
+    // ⭐ 2. OPTIONS PREFLIGHT (Biar Vercel gak blokir pas klik Save/Delete)
+    // Pakai wildcard (*) biar meng-cover base route dan [id] route sekaligus
+    {
+      matcher: "/admin/myob*",
       method: "OPTIONS",
       middlewares: [corsMiddleware],
     },
     {
-      // 🚀 Terapkan CORS & HTTPS ke semua rute Medusa (GENERAL PALING AKHIR)
+      matcher: "/admin/hero*",
+      method: "OPTIONS",
+      middlewares: [corsMiddleware],
+    },
+    {
+      matcher: "/admin/reviews*",
+      method: "OPTIONS",
+      middlewares: [corsMiddleware],
+    },
+    {
+      matcher: "/admin/store-location*",
+      method: "OPTIONS",
+      middlewares: [corsMiddleware],
+    },
+
+    // ⭐ 3. GENERAL ROUTES (Sapu Jagat paling akhir untuk method lain)
+    {
       matcher: "/*",
       middlewares: [forceHttpsProtocol, corsMiddleware],
     },
