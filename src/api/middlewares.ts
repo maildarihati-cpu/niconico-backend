@@ -11,16 +11,12 @@ const forceHttpsProtocol = (req: any, res: any, next: any) => {
   next();
 }
 
-// 🌟 OBAT 2: CORS Sapu Jagat (Berlaku di Local & Live)
+// 🌟 OBAT 2: CORS Dinamis untuk menghindari pemblokiran Vercel/Railway
 const corsMiddleware = (req: any, res: any, next: any) => {
-  const origin = req.headers.origin || ""; 
-  
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "http://localhost:9000"); 
-  }
-  
+  // Selalu tangkap origin asal request untuk header CORS
+  const origin = req.headers.origin || req.headers.host || "https://admin.niconicoresort.com"; 
+
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-publishable-api-key, Authorization, x-medusa-access-token, Accept, x-medusa-locale");
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -35,7 +31,6 @@ const corsMiddleware = (req: any, res: any, next: any) => {
 export default defineMiddlewares({
   routes: [
     // ⭐ 1. UPLOAD MIDDLEWARES (HARUS POST)
-    // Pastikan corsMiddleware masuk ke dalam array middlewares SEBELUM multer
     {
       matcher: "/admin/myob/upload",
       method: "POST",
@@ -57,8 +52,7 @@ export default defineMiddlewares({
       middlewares: [corsMiddleware, upload.single("file") as any],
     },
 
-    // ⭐ 2. OPTIONS PREFLIGHT (Biar Vercel gak blokir pas klik Save/Delete)
-    // Pakai wildcard (*) biar meng-cover base route dan [id] route sekaligus
+    // ⭐ 2. OPTIONS PREFLIGHT
     {
       matcher: "/admin/myob*",
       method: "OPTIONS",
@@ -80,7 +74,7 @@ export default defineMiddlewares({
       middlewares: [corsMiddleware],
     },
 
-    // ⭐ 3. GENERAL ROUTES (Sapu Jagat paling akhir untuk method lain)
+    // ⭐ 3. GENERAL ROUTES
     {
       matcher: "/*",
       middlewares: [forceHttpsProtocol, corsMiddleware],

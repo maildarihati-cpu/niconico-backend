@@ -2,9 +2,10 @@ import { Button, FocusModal, Heading, Text, toast } from "@medusajs/ui"
 import { Image as ImageIcon, UploadCloud, CheckCircle2, Loader2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
-// 🌟 Dapatkan URL Backend dari Environment Variable
-// Di Medusa Admin (Vite), biasanya pakai MEDUSA_ADMIN_BACKEND_URL
-const BACKEND_URL = process.env.MEDUSA_ADMIN_BACKEND_URL || "http://localhost:9000"
+// 🌟 PERBAIKAN URL: Deteksi otomatis. Pastikan URL Vercel dan Railway sesuai.
+const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:9000" 
+  : "https://niconico-backend.railway.app"; 
 
 interface HeroFile {
   id: string
@@ -27,13 +28,17 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
   const fetchFiles = useCallback(async () => {
     setLoading(true)
     try {
-      // 🌟 URL sekarang dinamis mengikuti environment
       const baseUrl = `${BACKEND_URL}/admin/hero`
       const url = category 
         ? `${baseUrl}?category=${category}`
         : baseUrl
         
-      const res = await fetch(url)
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include" // 🌟 WAJIB untuk Vercel
+      })
+      if (!res.ok) throw new Error("Gagal ambil list gambar")
+      
       const data = await res.json()
       setFiles(data.heroes || [])
     } catch (err) {
@@ -57,11 +62,14 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
     formData.append("category", category || "hero-banner")
 
     try {
-      // 🌟 URL upload juga sekarang dinamis
       const res = await fetch(`${BACKEND_URL}/admin/hero/upload`, {
         method: "POST",
+        credentials: "include", // 🌟 WAJIB untuk Vercel
         body: formData
       })
+      
+      if (!res.ok) throw new Error("Upload failed")
+      
       const data = await res.json()
       if (data.url) {
         setSelectedUrl(data.url)
@@ -69,6 +77,7 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
         toast.success("Image uploaded successfully!")
       }
     } catch (err) {
+      console.error(err)
       toast.error("Upload failed")
     } finally {
       setIsUploading(false)
@@ -120,7 +129,8 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
               Folder: {category?.toUpperCase() || "HERO"}
             </Heading>
             
-            <label className="cursor-pointer bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-800 transition-all shadow-sm">
+            {/* Menggunakan Black (#000000) untuk konsistensi branding profesional yang sering ditekankan */}
+            <label className="cursor-pointer bg-[#000000] text-[#FFFFFF] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-800 transition-all shadow-sm">
               {isUploading ? <Loader2 className="animate-spin w-4 h-4" /> : <UploadCloud size={16} />}
               <span className="text-[10px] font-bold uppercase tracking-widest">{isUploading ? "Uploading..." : "Upload New"}</span>
               <input type="file" className="hidden" onChange={handleUpload} accept="image/*" disabled={isUploading} />
@@ -140,13 +150,14 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
                   onClick={() => setSelectedUrl(file.image_url)} 
                   className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all bg-ui-bg-base ${
                     selectedUrl === file.image_url 
-                      ? 'border-orange-500 ring-4 ring-orange-500/10' 
+                      // Menggunakan hex Blue #0028FF yang biasa dipilih untuk UI state aktif
+                      ? 'border-[#0028FF] ring-4 ring-[#0028FF]/10' 
                       : 'border-transparent hover:border-ui-border-strong'
                   }`}
                 >
                   <img src={file.image_url} className="w-full h-full object-cover" alt="Asset" />
                   {selectedUrl === file.image_url && (
-                    <div className="absolute top-2 right-2 bg-orange-500 rounded-full p-1 shadow-lg">
+                    <div className="absolute top-2 right-2 bg-[#0028FF] rounded-full p-1 shadow-lg">
                       <CheckCircle2 size={14} className="text-white" />
                     </div>
                   )}
