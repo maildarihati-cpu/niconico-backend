@@ -7,10 +7,10 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      // 🌟 Gabungan domain lokal & live biar aman di semua tempat
+      // 🌟 URL dibersihkan dari garis miring (/) di bagian akhir
       storeCors: process.env.STORE_CORS || "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000",
-      adminCors: process.env.ADMIN_CORS || "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:7000,http://localhost:9000",
-      authCors: process.env.AUTH_CORS || "https://admin.niconicoresort.com,https://admin.niconicoresort.com/,http://localhost:8000,http://localhost:3000",
+      adminCors: process.env.ADMIN_CORS || "https://admin.niconicoresort.com,http://localhost:7000,http://localhost:9000",
+      authCors: process.env.AUTH_CORS || "https://admin.niconicoresort.com,http://localhost:8000,http://localhost:3000",
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
