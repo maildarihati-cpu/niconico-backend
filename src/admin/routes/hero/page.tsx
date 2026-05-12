@@ -4,9 +4,11 @@ import { Plus, Image as ImageIcon, Trash, Save, LayoutDashboard, RefreshCcw } fr
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library" 
 
-// 🌟 URL PASTI AMAN
-const BACKEND_URL = import.meta.env.VITE_MEDUSA_BACKEND_URL || 
-  (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:9000" : "https://niconico-backend.up.railway.app")
+// 🌟 OBAT ANTI CONNECTION REFUSED
+// Logika ini memaksa: Kalau dibuka di localhost, pakai localhost. Kalau dibuka di Vercel, WAJIB pakai URL Railway.
+const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:9000" 
+  : "https://niconico-backend.railway.app"; // ⚠️ GANTI INI DENGAN URL RAILWAY BOS KALAU BEDA!
 
 const HeroAdminPage = () => {
   const [slides, setSlides] = useState<any[]>([])
@@ -18,9 +20,10 @@ const HeroAdminPage = () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/hero`, {
         method: "GET",
-        credentials: "include" 
+        credentials: "include" // Wajib ada untuk bypass CORS
       })
       if (!res.ok) throw new Error("Gagal tarik data")
+      
       const data = await res.json()
       setSlides(data.heroes || [])
       if(data.setting) setGlobalTitle(data.setting.global_title)
@@ -91,6 +94,7 @@ const HeroAdminPage = () => {
 
   return (
     <Container className="flex flex-col gap-y-8 p-8">
+      {/* BAGIAN UI TETAP SAMA */}
       <div className="flex items-center justify-between border-b border-ui-border-base pb-4">
         <div>
           <Heading level="h1" className="flex items-center gap-2">
