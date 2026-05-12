@@ -7,8 +7,11 @@ export const POST = async (req: MedusaRequest & { files?: any[] }, res: MedusaRe
     const myobService = req.scope.resolve("myob") 
 
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "Tidak ada file" }) // INI DIA TERSANGKANYA
+      console.error("[MYOB Upload] Tidak ada file di request.files")
+      return res.status(400).json({ message: "Tidak ada file" })
     }
+
+    console.log(`[MYOB Upload] Memproses ${req.files.length} file(s)`)
 
     const filesToUpload = req.files.map((file) => ({
       filename: `myob/${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`,
@@ -17,14 +20,28 @@ export const POST = async (req: MedusaRequest & { files?: any[] }, res: MedusaRe
     }))
 
     const uploadedFiles = await fileService.createFiles(filesToUpload)
+    
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      console.error("[MYOB Upload] fileService.createFiles() mengembalikan array kosong")
+      return res.status(500).json({ message: "File tidak terupload ke storage" })
+    }
 
-    // SIMPAN KE TABEL GALERI SUPABASE
+    console.log(`[MYOB Upload] File berhasil upload ke storage. URL: ${uploadedFiles[0].url}`)
+
+    // SIMPAN KE TABEL GALERI
     if (uploadedFiles.length > 0) {
-      await myobService.createMyobGalleries({ url: uploadedFiles[0].url })
+      try {
+        await myobService.createMyobGalleries({ url: uploadedFiles[0].url })
+        console.log("[MYOB Upload] Berhasil simpan ke tabel myob_gallery")
+      } catch (dbError) {
+        console.error("[MYOB Upload] GAGAL simpan ke myob_gallery:", dbError)
+        // Jangan return error, file sudah terupload, hanya galeri yang gagal
+      }
     }
 
     res.status(200).json({ files: uploadedFiles })
   } catch (error) {
-    res.status(500).json({ message: "Gagal upload" })
+    console.error("[MYOB Upload Error] Error detail:", error)
+    res.status(500).json({ message: "Gagal upload", error: String(error) })
   }
 }
