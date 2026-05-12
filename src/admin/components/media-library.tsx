@@ -2,7 +2,7 @@ import { Button, FocusModal, Heading, Text, toast } from "@medusajs/ui"
 import { Image as ImageIcon, UploadCloud, CheckCircle2, Loader2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
-// 🌟 PERBAIKAN URL: Deteksi otomatis. Pastikan URL Vercel dan Railway sesuai.
+// 🌟 URL PASTI AMAN: process.env tidak jalan di browser Vite, jadi kita deteksi manual.
 const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
   ? "http://localhost:9000" 
   : "https://niconico-backend.railway.app"; 
@@ -24,47 +24,41 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
   const [selectedUrl, setSelectedUrl] = useState("")
   const [isUploading, setIsUploading] = useState(false)
 
-  // 1. Fungsi ambil data dari backend
   const fetchFiles = useCallback(async () => {
     setLoading(true)
     try {
       const baseUrl = `${BACKEND_URL}/admin/hero`
-      const url = category 
-        ? `${baseUrl}?category=${category}`
-        : baseUrl
+      const url = category ? `${baseUrl}?category=${category}` : baseUrl
         
       const res = await fetch(url, {
         method: "GET",
-        credentials: "include" // 🌟 WAJIB untuk Vercel
+        credentials: "include" // 🌟 WAJIB TEMBUS CORS
       })
-      if (!res.ok) throw new Error("Gagal ambil list gambar")
-      
+      if (!res.ok) throw new Error("Gagal tarik list")
       const data = await res.json()
       setFiles(data.heroes || [])
     } catch (err) {
-      console.error("Gagal ambil list gambar:", err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }, [category])
 
-  useEffect(() => { 
-    fetchFiles() 
-  }, [fetchFiles])
+  useEffect(() => { fetchFiles() }, [fetchFiles])
 
-  // 2. Fungsi Upload
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     setIsUploading(true)
     
     const formData = new FormData() 
-    formData.append("file", e.target.files[0])
+    // 🌟 PERBAIKAN: Ubah jadi "files" (Array), samakan persis dengan MYOB
+    formData.append("files", e.target.files[0])
     formData.append("category", category || "hero-banner")
 
     try {
       const res = await fetch(`${BACKEND_URL}/admin/hero/upload`, {
         method: "POST",
-        credentials: "include", // 🌟 WAJIB untuk Vercel
+        credentials: "include", // 🌟 WAJIB TEMBUS CORS
         body: formData
       })
       
@@ -74,17 +68,15 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
       if (data.url) {
         setSelectedUrl(data.url)
         fetchFiles()
-        toast.success("Image uploaded successfully!")
+        toast.success("Berhasil upload gambar!")
       }
     } catch (err) {
-      console.error(err)
-      toast.error("Upload failed")
+      toast.error("Gagal upload")
     } finally {
       setIsUploading(false)
     }
   }
 
-  // 3. Fungsi Confirm
   const handleConfirm = () => {
     if (!selectedUrl) return
     onSelect(selectedUrl)
@@ -112,11 +104,7 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
             </div>
             <div className="flex gap-x-2">
               <FocusModal.Close asChild><Button variant="secondary">Cancel</Button></FocusModal.Close>
-              <Button 
-                variant="primary" 
-                disabled={!selectedUrl || isUploading} 
-                onClick={handleConfirm}
-              >
+              <Button variant="primary" disabled={!selectedUrl || isUploading} onClick={handleConfirm}>
                 Confirm Selection
               </Button>
             </div>
@@ -129,7 +117,6 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
               Folder: {category?.toUpperCase() || "HERO"}
             </Heading>
             
-            {/* Menggunakan Black (#000000) untuk konsistensi branding profesional yang sering ditekankan */}
             <label className="cursor-pointer bg-[#000000] text-[#FFFFFF] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-800 transition-all shadow-sm">
               {isUploading ? <Loader2 className="animate-spin w-4 h-4" /> : <UploadCloud size={16} />}
               <span className="text-[10px] font-bold uppercase tracking-widest">{isUploading ? "Uploading..." : "Upload New"}</span>
@@ -150,7 +137,6 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
                   onClick={() => setSelectedUrl(file.image_url)} 
                   className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all bg-ui-bg-base ${
                     selectedUrl === file.image_url 
-                      // Menggunakan hex Blue #0028FF yang biasa dipilih untuk UI state aktif
                       ? 'border-[#0028FF] ring-4 ring-[#0028FF]/10' 
                       : 'border-transparent hover:border-ui-border-strong'
                   }`}
@@ -163,11 +149,6 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
                   )}
                 </div>
               ))}
-              {files.length === 0 && (
-                <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl border-ui-border-base bg-ui-bg-base">
-                  <Text className="text-ui-fg-muted font-bold uppercase tracking-widest text-[10px]">No assets in this category</Text>
-                </div>
-              )}
             </div>
           )}
         </FocusModal.Body>

@@ -1,31 +1,35 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { Modules } from "@medusajs/utils"
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   res.setHeader("Content-Type", "application/json");
   try {
-    const fileService = req.scope.resolve("file") as any; 
+    const fileService = req.scope.resolve(Modules.FILE) as any;
     const heroService = req.scope.resolve("hero") as any;
     
-    const file = (req as any).file;
-    if (!file) {
+    // 🌟 PERBAIKAN: Tangkap sebagai "files" (Array), bukan "file" (Single)
+    const files = (req as any).files;
+    const category = (req.body as any)?.category || "hero-banner";
+
+    if (!files || files.length === 0) {
       return res.status(400).json({ message: "File kosong" });
     }
 
-    // 🌟 KUNCI UPLOAD: Medusa V2 minta di-passing ke dalam Array [ { } ]
+    // Eksekusi upload ke Storage Medusa
     const uploadedFiles = await fileService.createFiles([{
-      filename: file.originalname,
-      mimeType: file.mimetype,
-      content: file.buffer,
+      filename: files[0].originalname,
+      mimeType: files[0].mimetype,
+      content: files[0].buffer,
     }]);
 
-    // Ambil URL-nya dengan aman dari Array
     const finalUrl = Array.isArray(uploadedFiles) ? uploadedFiles[0].url : uploadedFiles.url;
 
-    // Daftarkan ke database hero
-    const category = (req.body as Record<string, any>)?.category || "hero-banner";
-    const existing = await heroService.listHeroes({ category });
+    const listMethod = typeof heroService.listHeroes === 'function' ? 'listHeroes' : 'listHeros';
+    const createMethod = typeof heroService.createHeroes === 'function' ? 'createHeroes' : 'createHeros';
+
+    const existing = await heroService[listMethod]({ category });
     
-    const heroRecord = await heroService.createHeroes({
+    const heroRecord = await heroService[createMethod]({
       image_url: finalUrl,
       category: category,
       position: existing ? existing.length : 0,
