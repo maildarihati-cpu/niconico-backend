@@ -1,4 +1,4 @@
-import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { loadEnv, defineConfig, Modules } from '@medusajs/framework/utils'
 
 // Memuat file .env
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
@@ -7,10 +7,10 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      // 🌟 HARDCODE MUTLAK: Buang process.env agar tidak ada yang bisa meng-override dari luar
-      storeCors: "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000",
-      adminCors: "https://admin.niconicoresort.com,http://localhost:7000,http://localhost:9000",
-      authCors: "https://admin.niconicoresort.com,http://localhost:8000,http://localhost:3000",
+      // 🌟 URL dibersihkan dari garis miring (/) di bagian akhir
+      storeCors: process.env.STORE_CORS || "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000",
+      adminCors: process.env.ADMIN_CORS || "https://admin.niconicoresort.com,http://localhost:7000,http://localhost:9000",
+      authCors: process.env.AUTH_CORS || "https://admin.niconicoresort.com,http://localhost:8000,http://localhost:3000",
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     }
@@ -28,6 +28,30 @@ export default defineConfig({
 
   // --- REGISTRASI MODULES ---
   modules: {
+    // 🌟 TAMBAHAN MODULE AUTH (EMAIL & GOOGLE)
+    [Modules.AUTH]: {
+      resolve: "@medusajs/auth",
+      options: {
+        providers: [
+          // Provider bawaan buat login pakai Email & Password biasa
+          {
+            resolve: "@medusajs/auth-emailpass",
+            id: "emailpass",
+          },
+          // Provider baru buat Sign In with Google
+          {
+            resolve: "@medusajs/auth-google",
+            id: "google",
+            options: {
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+            },
+          },
+        ],
+      },
+    },
+    
     file: {
       resolve: "@medusajs/medusa/file",
       options: {
