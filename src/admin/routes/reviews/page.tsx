@@ -4,14 +4,15 @@ import { MessageSquareQuote, Plus, Trash, Pencil, Image as ImageIcon, Star } fro
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library"
 
-// Mengambil URL Backend
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || process.env.VITE_MEDUSA_BACKEND_URL || "https://niconico-backend-production.up.railway.app"
+// 🌟 PERBAIKAN FATAL: Deteksi URL otomatis tanpa process.env agar Vite tidak CRASH!
+const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:9000" 
+  : "https://niconico-backend-production.up.railway.app"
 
 // 🌟 FUNGSI PENYELAMAT FOTO: Memastikan URL foto selalu mengarah ke Railway
 const getImageUrl = (url: string | null) => {
   if (!url) return "";
-  if (url.startsWith("http")) return url; // Kalau sudah pakai S3/Cloudinary/URL absolut, biarkan
-  // Hapus slash ganda jika ada
+  if (url.startsWith("http")) return url; 
   const cleanPath = url.startsWith("/") ? url : `/${url}`;
   return `${BACKEND_URL}${cleanPath}`;
 }
@@ -177,7 +178,6 @@ const StoryTellerAdmin = () => {
                 <MediaLibrary category="reviews" onSelect={(url) => setFormData(p => ({...p, image_url: url}))} trigger={
                     <div className="relative w-40 h-40 rounded-3xl overflow-hidden border-2 border-dashed border-ui-border-base flex items-center justify-center cursor-pointer group hover:border-[#ED5725] bg-ui-bg-subtle transition-all">
                       {formData.image_url ? (
-                        {/* 🌟 PAKAI FUNGSI getImageUrl DI SINI */}
                         <img src={getImageUrl(formData.image_url)} className="w-full h-full object-cover shadow-xl" />
                       ) : (
                         <div className="text-center"><ImageIcon className="mx-auto mb-1 text-ui-fg-muted" /><Text size="xsmall">Select Image</Text></div>
@@ -236,7 +236,6 @@ const StoryTellerAdmin = () => {
             <Table.Row key={rev.id}>
               <Table.Cell>
                 <div className="flex items-center gap-3">
-                  {/* 🌟 PAKAI FUNGSI getImageUrl DI SINI */}
                   <Avatar src={getImageUrl(rev.image_url)} fallback={rev.customer_name[0]} size="small" />
                   <Text className="font-bold text-sm">{rev.customer_name}</Text>
                 </div>

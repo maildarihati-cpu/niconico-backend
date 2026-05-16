@@ -2,12 +2,12 @@ import { Button, FocusModal, Heading, Text, toast } from "@medusajs/ui"
 import { Image as ImageIcon, UploadCloud, CheckCircle2, Loader2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
-// 🌟 PERBAIKAN 1: Baca ENV dulu, kalau gagal baru pakai URL Railway yang LENGKAP & BENAR
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || process.env.VITE_MEDUSA_BACKEND_URL || (typeof window !== "undefined" && window.location.hostname === "localhost" 
+// 🌟 PERBAIKAN FATAL: Deteksi URL otomatis tanpa process.env agar Vite tidak CRASH!
+const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
   ? "http://localhost:9000" 
-  : "https://niconico-backend-production.up.railway.app"); 
+  : "https://niconico-backend-production.up.railway.app"; 
 
-// 🌟 PERBAIKAN 2: Paksa URL relatif menjadi URL absolut Railway
+// 🌟 FUNGSI PENYELAMAT FOTO: Memastikan URL foto selalu mengarah ke Railway
 const getImageUrl = (url: string | null) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
@@ -148,7 +148,6 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
                       : 'border-transparent hover:border-ui-border-strong'
                   }`}
                 >
-                  {/* 🌟 PERBAIKAN 3: Bungkus image_url dengan getImageUrl agar foto di-render dari server yang benar */}
                   <img src={getImageUrl(file.image_url)} className="w-full h-full object-cover" alt="Asset" />
                   {selectedUrl === file.image_url && (
                     <div className="absolute top-2 right-2 bg-[#0028FF] rounded-full p-1 shadow-lg">
