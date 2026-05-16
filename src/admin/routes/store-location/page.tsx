@@ -2,11 +2,20 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Button, Table, Text, FocusModal, Label, Input, Textarea, toast, Avatar, Switch } from "@medusajs/ui"
 import { MapPin, Plus, Trash, Pencil, Image as ImageIcon } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
-// Sesuaikan path import MediaLibrary bos
 import { MediaLibrary } from "../../components/media-library" 
 
-// 🌟 Dapatkan URL Backend dari Environment Variable
-const BACKEND_URL = process.env.MEDUSA_ADMIN_BACKEND_URL || "http://localhost:9000"
+// 🌟 PERBAIKAN FATAL: Deteksi URL otomatis tanpa process.env agar Vite tidak CRASH!
+const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:9000" 
+  : "https://niconico-backend-production.up.railway.app"
+
+// 🌟 FUNGSI PENYELAMAT FOTO: Memastikan URL foto selalu mengarah ke Railway
+const getImageUrl = (url: string | null) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url; 
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${BACKEND_URL}${cleanPath}`;
+}
 
 const StoreLocationsAdmin = () => {
   const [stores, setStores] = useState<any[]>([])
@@ -25,10 +34,13 @@ const StoreLocationsAdmin = () => {
     is_featured: false
   })
 
-  // GET DATA (🌟 Pakai BACKEND_URL)
+  // GET DATA
   const fetchStores = useCallback(async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/admin/store-location`)
+      const res = await fetch(`${BACKEND_URL}/admin/store-location`, {
+        credentials: "include" // 🌟 WAJIB TEMBUS CORS
+      })
+      if (!res.ok) throw new Error("Gagal mengambil data")
       const data = await res.json()
       setStores(data.store_locations || [])
     } catch (err) {
@@ -54,7 +66,7 @@ const StoreLocationsAdmin = () => {
     setIsOpen(true)
   }
 
-  // SAVE / UPDATE DATA (🌟 Pakai BACKEND_URL)
+  // SAVE / UPDATE DATA
   const handleSave = async () => {
     if (!formData.name) return toast.error("Store Name required!")
     if (!formData.address) return toast.error("Address required!")
@@ -69,6 +81,7 @@ const StoreLocationsAdmin = () => {
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // 🌟 WAJIB TEMBUS CORS
         body: JSON.stringify(formData)
       })
 
@@ -86,11 +99,16 @@ const StoreLocationsAdmin = () => {
     }
   }
 
-  // DELETE DATA (🌟 Pakai BACKEND_URL)
+  // DELETE DATA
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus store ini?")) return
     try {
-      await fetch(`${BACKEND_URL}/admin/store-location/${id}`, { method: "DELETE" })
+      const res = await fetch(`${BACKEND_URL}/admin/store-location/${id}`, { 
+        method: "DELETE",
+        credentials: "include" // 🌟 WAJIB TEMBUS CORS
+      })
+      if (!res.ok) throw new Error()
+      
       toast.success("Store Deleted")
       fetchStores()
     } catch (err) {
@@ -98,7 +116,7 @@ const StoreLocationsAdmin = () => {
     }
   }
 
-  // TOGGLE FEATURED (🌟 Pakai BACKEND_URL)
+  // TOGGLE FEATURED
   const handleToggleFeatured = async (store: any, checked: boolean) => {
     const currentFeatured = stores.filter(s => s.is_featured).length;
     
@@ -111,6 +129,7 @@ const StoreLocationsAdmin = () => {
         const res = await fetch(`${BACKEND_URL}/admin/store-location/${store.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
+            credentials: "include", // 🌟 WAJIB TEMBUS CORS
             body: JSON.stringify({ is_featured: checked })
         });
         if (!res.ok) throw new Error();
@@ -170,7 +189,7 @@ const StoreLocationsAdmin = () => {
                     <Label className="uppercase font-bold text-[10px] tracking-widest text-[#ED5725]">Main Image *</Label>
                     <MediaLibrary category="store" onSelect={(url) => setFormData(p => ({...p, image_main: url}))} trigger={
                         <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-dashed border-ui-border-base flex items-center justify-center cursor-pointer group hover:border-[#ED5725] bg-ui-bg-subtle transition-all">
-                          {formData.image_main ? <img src={formData.image_main} className="w-full h-full object-cover shadow-sm" /> : <div className="text-center"><ImageIcon className="mx-auto mb-1 text-ui-fg-muted" /><Text size="xsmall">Select Main</Text></div>}
+                          {formData.image_main ? <img src={getImageUrl(formData.image_main)} className="w-full h-full object-cover shadow-sm" /> : <div className="text-center"><ImageIcon className="mx-auto mb-1 text-ui-fg-muted" /><Text size="xsmall">Select Main</Text></div>}
                         </div>
                     } />
                   </div>
@@ -179,7 +198,7 @@ const StoreLocationsAdmin = () => {
                        <Label className="uppercase font-bold text-[10px] tracking-widest">Sub Image 1</Label>
                        <MediaLibrary category="store" onSelect={(url) => setFormData(p => ({...p, image_sub1: url}))} trigger={
                           <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border-2 border-dashed border-ui-border-base flex items-center justify-center cursor-pointer group hover:border-[#ED5725] bg-ui-bg-subtle transition-all">
-                            {formData.image_sub1 ? <img src={formData.image_sub1} className="w-full h-full object-cover" /> : <div className="text-center"><ImageIcon className="mx-auto mb-1 text-ui-fg-muted" /></div>}
+                            {formData.image_sub1 ? <img src={getImageUrl(formData.image_sub1)} className="w-full h-full object-cover" /> : <div className="text-center"><ImageIcon className="mx-auto mb-1 text-ui-fg-muted" /></div>}
                           </div>
                       } />
                     </div>
@@ -187,7 +206,7 @@ const StoreLocationsAdmin = () => {
                        <Label className="uppercase font-bold text-[10px] tracking-widest">Sub Image 2</Label>
                        <MediaLibrary category="store" onSelect={(url) => setFormData(p => ({...p, image_sub2: url}))} trigger={
                           <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border-2 border-dashed border-ui-border-base flex items-center justify-center cursor-pointer group hover:border-[#ED5725] bg-ui-bg-subtle transition-all">
-                            {formData.image_sub2 ? <img src={formData.image_sub2} className="w-full h-full object-cover" /> : <div className="text-center"><ImageIcon className="mx-auto mb-1 text-ui-fg-muted" /></div>}
+                            {formData.image_sub2 ? <img src={getImageUrl(formData.image_sub2)} className="w-full h-full object-cover" /> : <div className="text-center"><ImageIcon className="mx-auto mb-1 text-ui-fg-muted" /></div>}
                           </div>
                       } />
                     </div>
@@ -232,7 +251,8 @@ const StoreLocationsAdmin = () => {
             <Table.Row key={store.id}>
               <Table.Cell>
                 <div className="flex items-center gap-4">
-                  <Avatar src={store.image_main} fallback={store.name[0]} size="large" variant="squared" />
+                  {/* 🌟 PAKAI FUNGSI getImageUrl DI SINI JUGA */}
+                  <Avatar src={getImageUrl(store.image_main)} fallback={store.name[0]} size="large" variant="squared" />
                   <div>
                     <Text className="font-bold text-sm uppercase text-[#ED5725]">{store.name}</Text>
                     <Text size="xsmall" className="text-ui-fg-subtle line-clamp-1 max-w-[400px]">{store.address}</Text>
