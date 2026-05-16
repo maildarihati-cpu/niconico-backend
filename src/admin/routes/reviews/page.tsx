@@ -4,8 +4,8 @@ import { MessageSquareQuote, Plus, Trash, Pencil, Image as ImageIcon, Star } fro
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library"
 
-// 🌟 GUNAKAN ENV YANG BENAR SESUAI SETTING VERCEL
-const BACKEND_URL = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+// 🌟 PERBAIKAN FATAL: Menangkap Env Client-Side & Fallback ke URL Railway langsung!
+const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || process.env.VITE_MEDUSA_BACKEND_URL || "https://niconico-backend-production.up.railway.app"
 
 // --- DATABASE BENDERA & NEGARA LENGKAP (WP STYLE) ---
 const countries = [
@@ -51,7 +51,6 @@ const StoryTellerAdmin = () => {
   const fetchReviews = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/reviews`, {
-        // 🌟 WAJIB: Kirim cookie admin ke backend beda domain (Railway)
         credentials: "include" 
       })
       if (!res.ok) throw new Error("Gagal mengambil data")
@@ -89,7 +88,7 @@ const StoryTellerAdmin = () => {
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // 🌟 WAJIB: Otentikasi Admin
+        credentials: "include", 
         body: JSON.stringify(formData)
       })
 
@@ -113,7 +112,7 @@ const StoryTellerAdmin = () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/reviews/${id}`, { 
         method: "DELETE",
-        credentials: "include" // 🌟 WAJIB: Otentikasi Admin
+        credentials: "include" 
       })
       
       if (!res.ok) throw new Error("Delete failed")
