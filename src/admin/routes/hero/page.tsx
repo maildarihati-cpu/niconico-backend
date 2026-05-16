@@ -4,11 +4,18 @@ import { Plus, Image as ImageIcon, Trash, Save, LayoutDashboard, RefreshCcw } fr
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library" 
 
-// 🌟 OBAT ANTI CONNECTION REFUSED
-// Logika ini memaksa: Kalau dibuka di localhost, pakai localhost. Kalau dibuka di Vercel, WAJIB pakai URL Railway.
+// 🌟 OBAT ANTI CONNECTION REFUSED & ANTI CRASH
 const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
   ? "http://localhost:9000" 
-  : "https://niconico-backend.railway.app"; // ⚠️ GANTI INI DENGAN URL RAILWAY BOS KALAU BEDA!
+  : "https://niconico-backend-production.up.railway.app"
+
+// 🌟 FUNGSI PENYELAMAT FOTO
+const getImageUrl = (url: string | null) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url; 
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${BACKEND_URL}${cleanPath}`;
+}
 
 const HeroAdminPage = () => {
   const [slides, setSlides] = useState<any[]>([])
@@ -37,12 +44,15 @@ const HeroAdminPage = () => {
   const saveGlobalTitle = async () => {
     setLoading(true)
     try {
-      await fetch(`${BACKEND_URL}/admin/hero/settings`, {
+      const res = await fetch(`${BACKEND_URL}/admin/hero/settings`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: globalTitle })
       })
+      
+      if (!res.ok) throw new Error("Gagal update setting")
+      
       toast.success("Branding text updated successfully!")
     } catch(err) {
       toast.error("Failed to update branding text")
@@ -53,12 +63,15 @@ const HeroAdminPage = () => {
 
   const addImageSlide = async (url: string) => {
     try {
-      await fetch(`${BACKEND_URL}/admin/hero`, {
+      const res = await fetch(`${BACKEND_URL}/admin/hero`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: url })
       })
+      
+      if (!res.ok) throw new Error("Gagal add slide")
+      
       fetchData()
     } catch (err) {
       toast.error("Failed to add slide")
@@ -67,12 +80,15 @@ const HeroAdminPage = () => {
 
   const updateImageSlide = async (id: string, url: string) => {
     try {
-      await fetch(`${BACKEND_URL}/admin/hero/${id}`, {
-        method: "POST",
+      const res = await fetch(`${BACKEND_URL}/admin/hero/${id}`, {
+        method: "POST", // Memang pakai POST karena routing di backend Bos di-set POST
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: url })
       })
+      
+      if (!res.ok) throw new Error("Gagal update slide")
+      
       fetchData()
     } catch (err) {
       toast.error("Failed to update slide")
@@ -82,10 +98,13 @@ const HeroAdminPage = () => {
   const deleteSlide = async (id: string) => {
     if(!confirm("Remove this slide?")) return
     try {
-      await fetch(`${BACKEND_URL}/admin/hero/${id}`, { 
+      const res = await fetch(`${BACKEND_URL}/admin/hero/${id}`, { 
         method: "DELETE",
         credentials: "include" 
       })
+      
+      if (!res.ok) throw new Error("Delete failed")
+      
       fetchData()
     } catch (err) {
       toast.error("Failed to delete slide")
@@ -136,7 +155,9 @@ const HeroAdminPage = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {slides.map((slide: any) => (
             <div key={slide.id} className="relative aspect-[9/14] rounded-xl overflow-hidden group border border-ui-border-base shadow-sm hover:shadow-md transition-all bg-ui-bg-subtle">
-              <img src={slide.image_url} className="w-full h-full object-cover" alt="Banner" />
+              
+              {/* 🌟 PERBAIKAN: Bungkus dengan getImageUrl biar gambar muncul sempurna! */}
+              <img src={getImageUrl(slide.image_url)} className="w-full h-full object-cover" alt="Banner" />
               
               <div className="absolute inset-0 bg-ui-bg-base/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-3 transition-opacity p-4 backdrop-blur-sm">
                 <MediaLibrary 
