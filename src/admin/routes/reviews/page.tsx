@@ -4,9 +4,6 @@ import { MessageSquareQuote, Plus, Trash, Pencil, Image as ImageIcon, Star } fro
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library"
 
-// 🌟 Dapatkan URL Backend dari Environment Variable
-const BACKEND_URL = process.env.MEDUSA_ADMIN_BACKEND_URL || "http://localhost:9000"
-
 // --- DATABASE BENDERA & NEGARA LENGKAP (WP STYLE) ---
 const countries = [
   { code: "ID", name: "Indonesia", flag: "🇮🇩" },
@@ -47,14 +44,16 @@ const StoryTellerAdmin = () => {
     image_url: ""
   })
 
-  // 1. Fetch Data (Ganti localhost)
+  // 1. Fetch Data (Gunakan Path Relatif)
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/admin/reviews`)
+      const res = await fetch(`/admin/reviews`)
+      if (!res.ok) throw new Error("Gagal mengambil data")
       const data = await res.json()
       setReviews(data.reviews || [])
     } catch (err) {
       console.error("Gagal ambil data review", err)
+      toast.error("Gagal memuat cerita")
     }
   }, [])
 
@@ -73,14 +72,15 @@ const StoryTellerAdmin = () => {
     setIsOpen(true)
   }
 
-  // 2. Save Data (Ganti localhost)
+  // 2. Save Data (Gunakan Path Relatif)
   const handleSave = async () => {
     if (!formData.image_url) return toast.error("Select photo first!")
     setLoading(true)
     try {
+      // 🌟 PERHATIKAN: URL sekarang menggunakan huruf s di belakang (reviews) untuk menyesuaikan dengan API
       const url = editingId 
-        ? `${BACKEND_URL}/admin/reviews/${editingId}` 
-        : `${BACKEND_URL}/admin/reviews`
+        ? `/admin/reviews/${editingId}` 
+        : `/admin/reviews`
       
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
@@ -102,11 +102,13 @@ const StoryTellerAdmin = () => {
     }
   }
 
-  // 3. Delete Data (Ganti localhost)
+  // 3. Delete Data (Gunakan Path Relatif)
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus cerita kustomer ini?")) return
     try {
-      await fetch(`${BACKEND_URL}/admin/reviews/${id}`, { method: "DELETE" })
+      const res = await fetch(`/admin/reviews/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Delete failed")
+      
       toast.success("Deleted")
       fetchReviews()
     } catch (err) {

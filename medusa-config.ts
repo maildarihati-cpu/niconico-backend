@@ -23,7 +23,7 @@ export default defineConfig({
     // Default fallback ke localhost kalau di laptop, ambil dari .env kalau di Railway
     backendUrl: process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
     // 🌟 WAJIB /app: Biar rute API Frontend gak ketimpa sama HTML Admin
-    path: "/", 
+    path: "/app", 
   },
 
   // --- REGISTRASI MODULES ---
