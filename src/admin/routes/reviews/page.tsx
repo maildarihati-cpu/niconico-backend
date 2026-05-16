@@ -4,6 +4,9 @@ import { MessageSquareQuote, Plus, Trash, Pencil, Image as ImageIcon, Star } fro
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library"
 
+// 🌟 GUNAKAN ENV YANG BENAR SESUAI SETTING VERCEL
+const BACKEND_URL = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+
 // --- DATABASE BENDERA & NEGARA LENGKAP (WP STYLE) ---
 const countries = [
   { code: "ID", name: "Indonesia", flag: "🇮🇩" },
@@ -44,16 +47,18 @@ const StoryTellerAdmin = () => {
     image_url: ""
   })
 
-  // 1. Fetch Data (Gunakan Path Relatif)
+  // 1. Fetch Data
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch(`/admin/reviews`)
+      const res = await fetch(`${BACKEND_URL}/admin/reviews`, {
+        // 🌟 WAJIB: Kirim cookie admin ke backend beda domain (Railway)
+        credentials: "include" 
+      })
       if (!res.ok) throw new Error("Gagal mengambil data")
       const data = await res.json()
       setReviews(data.reviews || [])
     } catch (err) {
       console.error("Gagal ambil data review", err)
-      toast.error("Gagal memuat cerita")
     }
   }, [])
 
@@ -72,23 +77,23 @@ const StoryTellerAdmin = () => {
     setIsOpen(true)
   }
 
-  // 2. Save Data (Gunakan Path Relatif)
+  // 2. Save Data
   const handleSave = async () => {
     if (!formData.image_url) return toast.error("Select photo first!")
     setLoading(true)
     try {
-      // 🌟 PERHATIKAN: URL sekarang menggunakan huruf s di belakang (reviews) untuk menyesuaikan dengan API
       const url = editingId 
-        ? `/admin/reviews/${editingId}` 
-        : `/admin/reviews`
+        ? `${BACKEND_URL}/admin/reviews/${editingId}` 
+        : `${BACKEND_URL}/admin/reviews`
       
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // 🌟 WAJIB: Otentikasi Admin
         body: JSON.stringify(formData)
       })
 
-      if (!res.ok) throw new Error()
+      if (!res.ok) throw new Error("Gagal menyimpan ke backend")
 
       toast.success(editingId ? "Story updated!" : "Story added!")
       setIsOpen(false)
@@ -102,11 +107,15 @@ const StoryTellerAdmin = () => {
     }
   }
 
-  // 3. Delete Data (Gunakan Path Relatif)
+  // 3. Delete Data
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus cerita kustomer ini?")) return
     try {
-      const res = await fetch(`/admin/reviews/${id}`, { method: "DELETE" })
+      const res = await fetch(`${BACKEND_URL}/admin/reviews/${id}`, { 
+        method: "DELETE",
+        credentials: "include" // 🌟 WAJIB: Otentikasi Admin
+      })
+      
       if (!res.ok) throw new Error("Delete failed")
       
       toast.success("Deleted")
