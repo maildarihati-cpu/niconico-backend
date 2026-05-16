@@ -2,10 +2,18 @@ import { Button, FocusModal, Heading, Text, toast } from "@medusajs/ui"
 import { Image as ImageIcon, UploadCloud, CheckCircle2, Loader2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
-// 🌟 URL PASTI AMAN: process.env tidak jalan di browser Vite, jadi kita deteksi manual.
-const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+// 🌟 PERBAIKAN 1: Baca ENV dulu, kalau gagal baru pakai URL Railway yang LENGKAP & BENAR
+const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || process.env.VITE_MEDUSA_BACKEND_URL || (typeof window !== "undefined" && window.location.hostname === "localhost" 
   ? "http://localhost:9000" 
-  : "https://niconico-backend.railway.app"; 
+  : "https://niconico-backend-production.up.railway.app"); 
+
+// 🌟 PERBAIKAN 2: Paksa URL relatif menjadi URL absolut Railway
+const getImageUrl = (url: string | null) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${BACKEND_URL}${cleanPath}`;
+}
 
 interface HeroFile {
   id: string
@@ -51,7 +59,6 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
     setIsUploading(true)
     
     const formData = new FormData() 
-    // 🌟 PERBAIKAN: Ubah jadi "files" (Array), samakan persis dengan MYOB
     formData.append("files", e.target.files[0])
     formData.append("category", category || "hero-banner")
 
@@ -141,7 +148,8 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
                       : 'border-transparent hover:border-ui-border-strong'
                   }`}
                 >
-                  <img src={file.image_url} className="w-full h-full object-cover" alt="Asset" />
+                  {/* 🌟 PERBAIKAN 3: Bungkus image_url dengan getImageUrl agar foto di-render dari server yang benar */}
+                  <img src={getImageUrl(file.image_url)} className="w-full h-full object-cover" alt="Asset" />
                   {selectedUrl === file.image_url && (
                     <div className="absolute top-2 right-2 bg-[#0028FF] rounded-full p-1 shadow-lg">
                       <CheckCircle2 size={14} className="text-white" />
