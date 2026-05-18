@@ -28,6 +28,19 @@ export default defineConfig({
 
   // --- REGISTRASI MODULES ---
   modules: {
+    // 🌟 TAMBAHAN MODULE PAYMENT (XENDIT)
+    [Modules.PAYMENT]: {
+      resolve: "@medusajs/payment",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/xendit", // Path ke folder modul custom kita
+            id: "xendit", // Identifier resmi payment gateway
+          },
+        ],
+      },
+    },
+
     // 🌟 TAMBAHAN MODULE AUTH (EMAIL & GOOGLE)
     [Modules.AUTH]: {
       resolve: "@medusajs/auth",
