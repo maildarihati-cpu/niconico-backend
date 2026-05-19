@@ -1,5 +1,5 @@
-import xendit from "./service"
+import XenditPaymentProvider from "./service"
 
 export default {
-  services: [xendit],
+  services: [XenditPaymentProvider],
 }
