@@ -1,7 +1,9 @@
 import { AbstractPaymentProvider } from "@medusajs/framework/utils";
 import { Xendit } from "xendit-node";
 
-class XenditProviderService extends AbstractPaymentProvider {
+// 🌟 KITA GANTI NAMA CLASS-NYA JADI HURUF KECIL "xendit" 
+// Biar Awilix langsung mengenali tanpa butuh alias!
+class xendit extends AbstractPaymentProvider {
   static identifier = "xendit";
   protected xenditClient: any;
 
@@ -40,49 +42,23 @@ class XenditProviderService extends AbstractPaymentProvider {
     return "pending";
   }
 
-  // =====================================================================
-  // 🌟 FUNGSI WEBHOOK (Ini dia yang tadi dicari-cari Medusa!)
-  // =====================================================================
+  // 🌟 FUNGSI WEBHOOK 
   async getWebhookActionAndData(payload: any): Promise<any> {
-    // Ini adalah pintu penerima notifikasi dari Xendit.
-    // Kita set default dulu agar TypeScript diam. Nanti logikanya bisa diperdalam.
     return {
       action: "successful", 
       data: payload?.data || {},
     };
   }
 
-  // =====================================================================
   // FUNGSI-FUNGSI WAJIB BAWAAN MEDUSA
-  // =====================================================================
-
-  async updatePayment(context: any): Promise<any> {
-    return this.initiatePayment(context);
-  }
-
-  async authorizePayment(paymentSessionData: any, context?: any): Promise<any> {
-    return { status: "authorized", data: paymentSessionData };
-  }
-
-  async capturePayment(paymentSessionData: any): Promise<any> {
-    return paymentSessionData;
-  }
-
-  async refundPayment(paymentSessionData: any, refundAmount?: any): Promise<any> {
-    return paymentSessionData;
-  }
-
-  async cancelPayment(paymentSessionData: any): Promise<any> {
-    return paymentSessionData;
-  }
-
-  async deletePayment(paymentSessionData: any): Promise<any> {
-    return;
-  }
-
-  async retrievePayment(paymentSessionData: any): Promise<any> {
-    return paymentSessionData;
-  }
+  async updatePayment(context: any): Promise<any> { return this.initiatePayment(context); }
+  async authorizePayment(paymentSessionData: any, context?: any): Promise<any> { return { status: "authorized", data: paymentSessionData }; }
+  async capturePayment(paymentSessionData: any): Promise<any> { return paymentSessionData; }
+  async refundPayment(paymentSessionData: any, refundAmount?: any): Promise<any> { return paymentSessionData; }
+  async cancelPayment(paymentSessionData: any): Promise<any> { return paymentSessionData; }
+  async deletePayment(paymentSessionData: any): Promise<any> { return; }
+  async retrievePayment(paymentSessionData: any): Promise<any> { return paymentSessionData; }
 }
 
-export default XenditProviderService;
+// 🌟 PASTIKAN EXPORT-NYA JUGA "xendit"
+export default xendit;
