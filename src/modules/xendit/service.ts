@@ -15,7 +15,11 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
 
   async initiatePayment(context: any): Promise<any> {
     try {
-      const storeUrl = process.env.STOREFRONT_URL || "http://localhost:8000"; // Ganti dengan URL web frontend Bos kalau sudah live
+      // 🌟 Ambil mentahannya dari Railway
+      const rawStoreUrl = process.env.STOREFRONT_URL || "https://dev.niconicoresort.com";
+      
+      // 🌟 JURUS PEMOTONG: Ambil URL urutan pertama saja (sebelum tanda koma)
+      const storeUrl = rawStoreUrl.split(',')[0].trim();
 
       const invoice = await this.xenditClient.Invoice.createInvoice({
         data: {
@@ -23,9 +27,7 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
           amount: context.amount || 0,
           description: `Niconico Resort Payment - ${context?.email || 'Customer'}`,
           
-          // 🌟 JURUS GANDA: Kita kirim dua format penulisan sekaligus biar pasti terbaca Xendit!
-          success_redirect_url: `${storeUrl}/checkout/success`,
-          failure_redirect_url: `${storeUrl}/checkout`,
+          // Cukup pakai satu format ini saja (camelCase) yang disetujui Xendit
           successRedirectUrl: `${storeUrl}/checkout/success`, 
           failureRedirectUrl: `${storeUrl}/checkout`, 
         }
@@ -38,7 +40,12 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
   }
 
   async getPaymentStatus(paymentSessionData: any): Promise<any> { return "pending"; }
-  async getWebhookActionAndData(payload: any): Promise<any> { return { action: "successful", data: payload?.data || {} }; }
+  async getWebhookActionAndData(payload: any): Promise<any> { 
+    return { 
+      action: "captured", 
+      data: payload?.data || {} 
+    }; 
+  }
   async updatePayment(context: any): Promise<any> { return this.initiatePayment(context); }
   async authorizePayment(paymentSessionData: any, context?: any): Promise<any> { return { status: "authorized", data: paymentSessionData }; }
   async capturePayment(paymentSessionData: any): Promise<any> { return paymentSessionData; }
