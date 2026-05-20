@@ -15,11 +15,19 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
 
   async initiatePayment(context: any): Promise<any> {
     try {
+      const storeUrl = process.env.STOREFRONT_URL || "http://localhost:8000"; // Ganti dengan URL web frontend Bos kalau sudah live
+
       const invoice = await this.xenditClient.Invoice.createInvoice({
         data: {
           externalId: `order_niconico_${Date.now()}`,
           amount: context.amount || 0,
           description: `Niconico Resort Payment - ${context?.email || 'Customer'}`,
+          
+          // 🌟 JURUS GANDA: Kita kirim dua format penulisan sekaligus biar pasti terbaca Xendit!
+          success_redirect_url: `${storeUrl}/checkout/success`,
+          failure_redirect_url: `${storeUrl}/checkout`,
+          successRedirectUrl: `${storeUrl}/checkout/success`, 
+          failureRedirectUrl: `${storeUrl}/checkout`, 
         }
       });
       return { id: invoice.id, data: invoice };
