@@ -1,10 +1,9 @@
 import { AbstractPaymentProvider } from "@medusajs/framework/utils";
 import { Xendit } from "xendit-node";
 
-// 🌟 Nama class diubah menjadi XenditPaymentProvider
 class XenditPaymentProvider extends AbstractPaymentProvider {
-  // 🌟 Identifier wajib sama dengan nama class (camelCase)
-  static identifier = "xenditPaymentProvider";
+  // 🌟 KUNCI UTAMANYA DI SINI: Kembalikan jadi nama simpel agar sinkron!
+  static identifier = "xendit";
   protected xenditClient: any;
 
   constructor(container: any, options: any) {

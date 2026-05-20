@@ -35,7 +35,7 @@ export default defineConfig({
         providers: [
           {
             resolve: "./src/modules/xendit", // Path ke folder modul custom kita
-            id: "xenditPaymentProvider", // 🌟 Identifier diubah agar sinkron dengan nama class
+            id: "xendit", // 🌟 Identifier diubah agar sinkron dengan nama class
           },
         ],
       },
