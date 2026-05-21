@@ -14,34 +14,52 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   if (status === "PAID") {
     try {
       let cartIdToComplete = incomingId;
-      const query = req.scope.resolve("query");
+      const paymentModuleService = req.scope.resolve("payment");
 
       // 🌟 PELACAK LAPIS 1: Kalau tiketnya Payment Session (payses_)
       if (incomingId?.startsWith("payses_")) {
         console.log(`🔍 Melacak dari Payment Session: ${incomingId}...`);
-        const { data: sessions } = await query.graph({
-          entity: "payment_session",
-          fields: ["payment_collection_id"],
-          filters: { id: incomingId } as any 
-        });
-        if (sessions && sessions.length > 0 && sessions[0].payment_collection_id) {
-          incomingId = sessions[0].payment_collection_id; // Lempar ke pelacak lapis 2
-          console.log(`🎯 Session mengarah ke PayCol: ${incomingId}`);
+        try {
+          const session = await paymentModuleService.retrievePaymentSession(incomingId);
+          // Tutup mata TypeScript untuk session
+          if (session && (session as any).payment_collection_id) {
+            incomingId = (session as any).payment_collection_id;
+            console.log(`🎯 Session mengarah ke PayCol: ${incomingId}`);
+          }
+        } catch (err) {
+          console.log("⚠️ Gagal mengekstrak Session.");
         }
       }
 
       // 🌟 PELACAK LAPIS 2: Kalau tiketnya Payment Collection (pay_col_)
       if (incomingId?.startsWith("pay_col_")) {
         console.log(`🔍 Melacak Cart ID dari Payment Collection: ${incomingId}...`);
-        const { data: carts } = await query.graph({
-          entity: "cart",
-          fields: ["id"],
-          filters: { payment_collection: { id: incomingId } } as any 
-        });
+        try {
+          const payCol = await paymentModuleService.retrievePaymentCollection(incomingId);
+          
+          // 🌟 JURUS TUTUP MATA TOTAL: Jadikan payCol sebagai 'any' sepenuhnya
+          const payColAny = payCol as any;
+          let foundCartId = payColAny.cart_id || payColAny.context?.cart_id || payColAny.metadata?.cart_id;
 
-        if (carts && carts.length > 0) {
-          cartIdToComplete = carts[0].id;
-          console.log(`🎯 Ketemu! Cart ID aslinya adalah: ${cartIdToComplete}`);
+          if (!foundCartId) {
+            const query = req.scope.resolve("query");
+            const { data: collections } = await query.graph({
+              entity: "payment_collection",
+              fields: ["id", "cart.id", "cart_id"],
+              filters: { id: incomingId } as any 
+            });
+            if (collections && collections.length > 0) {
+              const colAny = collections[0] as any;
+              foundCartId = colAny.cart?.id || colAny.cart_id;
+            }
+          }
+
+          if (foundCartId) {
+            cartIdToComplete = foundCartId;
+            console.log(`🎯 Ketemu! Cart ID aslinya adalah: ${cartIdToComplete}`);
+          }
+        } catch (err: any) {
+          console.log("⚠️ Pelacak Lapis 2 Gagal:", err?.message);
         }
       }
 
