@@ -2,29 +2,32 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { completeCartWorkflow } from "@medusajs/core-flows"
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  // 1. Ambil laporan dari Xendit
   const payload = req.body as any;
+  
+  // 🌟 CCTV 1: Bongkar isi koper Xendit!
+  console.log("🚨 [XENDIT WEBHOOK MASUK]:", JSON.stringify(payload, null, 2));
+
   const invoiceData = payload?.data?.id ? payload.data : payload;
+  const cartId = invoiceData?.external_id;
+  const status = invoiceData?.status;
 
-  // 2. Ambil Cart ID yang tadi kita titipkan
-  const cartId = invoiceData.external_id;
+  // 🌟 CCTV 2: Cek kondisi syaratnya!
+  console.log(`📌 Mengecek Syarat - Status Xendit: ${status}, Cart ID: ${cartId}`);
 
-  // 3. Cek apakah benar ini laporan lunas dan memiliki Cart ID
-  if (invoiceData.status === "PAID" && cartId?.startsWith("cart_")) {
+  if (status === "PAID" && cartId?.startsWith("cart_")) {
     try {
       console.log(`🎉 UANG MASUK! Memproses Cart: ${cartId} menjadi Order...`);
-
-      // 4. BONGKAR PAKSA: Suruh Medusa ubah keranjang jadi Order detik ini juga!
       await completeCartWorkflow(req.scope).run({
         input: { id: cartId }
       });
-
       console.log(`✅ BOOM! Cart ${cartId} resmi mendarat di Dashboard Admin!`);
-    } catch (error) {
-      console.error("❌ Gagal mengeksekusi Order:", error);
+    } catch (error: any) {
+      console.error("❌ Gagal mengeksekusi Order:", error?.message || error);
     }
+  } else {
+    // 🌟 CCTV 3: Kalau ditolak, kita tahu alasannya!
+    console.log("⚠️ ROBOT DIAM: Order di-skip karena status bukan PAID atau bukan ID Cart.");
   }
 
-  // 5. Selalu balas 200 OK ke Xendit biar dia nggak bawel
   return res.status(200).send("OK");
 }
