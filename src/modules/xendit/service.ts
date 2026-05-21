@@ -40,11 +40,18 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
   }
 
   async getPaymentStatus(paymentSessionData: any): Promise<any> { return "pending"; }
-  async getWebhookActionAndData(payload: any): Promise<any> { 
-    return { 
-      action: "captured", 
-      data: payload?.data || {} 
-    }; 
+  async getWebhookActionAndData(payload: any): Promise<any> {
+    // 🌟 JURUS DETEKTIF: Cari data aslinya, baik yang dibungkus maupun yang telanjang dari Xendit
+    const invoiceData = payload?.data?.id ? payload.data : payload;
+
+    return {
+      action: "captured",
+      data: {
+        // 🌟 INI KUNCI JAWABANNYA: Kasih tahu Medusa ID transaksi yang mana!
+        session_id: invoiceData.id, 
+        amount: invoiceData.paid_amount || invoiceData.amount,
+      },
+    };
   }
   async updatePayment(context: any): Promise<any> { return this.initiatePayment(context); }
   async authorizePayment(paymentSessionData: any, context?: any): Promise<any> { return { status: "authorized", data: paymentSessionData }; }
