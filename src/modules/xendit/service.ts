@@ -15,19 +15,17 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
 
   async initiatePayment(context: any): Promise<any> {
     try {
-      // 🌟 Ambil mentahannya dari Railway
       const rawStoreUrl = process.env.STOREFRONT_URL || "https://dev.niconicoresort.com";
-      
-      // 🌟 JURUS PEMOTONG: Ambil URL urutan pertama saja (sebelum tanda koma)
       const storeUrl = rawStoreUrl.split(',')[0].trim();
+
+      // 🌟 JURUS SAKTI: Kita curi ID Keranjang (Cart) dari sistem Medusa
+      const cartId = context.resource_id || context.context?.cart_id || `order_niconico_${Date.now()}`;
 
       const invoice = await this.xenditClient.Invoice.createInvoice({
         data: {
-          externalId: `order_niconico_${Date.now()}`,
+          externalId: cartId, // 👈 KITA TITIPKAN CART ID KE XENDIT!
           amount: context.amount || 0,
           description: `Niconico Resort Payment - ${context?.email || 'Customer'}`,
-          
-          // Cukup pakai satu format ini saja (camelCase) yang disetujui Xendit
           successRedirectUrl: `${storeUrl}/checkout/success`, 
           failureRedirectUrl: `${storeUrl}/checkout`, 
         }
