@@ -3,30 +3,54 @@ import { completeCartWorkflow } from "@medusajs/core-flows"
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   const payload = req.body as any;
-  
-  // 🌟 CCTV 1: Bongkar isi koper Xendit!
   console.log("🚨 [XENDIT WEBHOOK MASUK]:", JSON.stringify(payload, null, 2));
 
   const invoiceData = payload?.data?.id ? payload.data : payload;
-  const cartId = invoiceData?.external_id;
+  const incomingId = invoiceData?.external_id;
   const status = invoiceData?.status;
 
-  // 🌟 CCTV 2: Cek kondisi syaratnya!
-  console.log(`📌 Mengecek Syarat - Status Xendit: ${status}, Cart ID: ${cartId}`);
+  console.log(`📌 Mengecek Syarat - Status: ${status}, ID Masuk: ${incomingId}`);
 
-  if (status === "PAID" && cartId?.startsWith("cart_")) {
+  if (status === "PAID") {
     try {
-      console.log(`🎉 UANG MASUK! Memproses Cart: ${cartId} menjadi Order...`);
-      await completeCartWorkflow(req.scope).run({
-        input: { id: cartId }
-      });
-      console.log(`✅ BOOM! Cart ${cartId} resmi mendarat di Dashboard Admin!`);
+      let cartIdToComplete = incomingId;
+
+      // 🌟 Kalau tiketnya berawalan pay_col_, kita bongkar database buat cari Cart aslinya!
+      if (incomingId?.startsWith("pay_col_")) {
+        console.log(`🔍 Melacak Cart ID dari Payment Collection: ${incomingId}...`);
+        const query = req.scope.resolve("query");
+        
+        // 🌟 JURUS PENANGKAL TYPESCRIPT: Tambahkan 'as any' di bagian filters
+        const { data: carts } = await query.graph({
+          entity: "cart",
+          fields: ["id"],
+          filters: { payment_collection: { id: incomingId } } as any 
+        });
+
+        if (carts && carts.length > 0) {
+          cartIdToComplete = carts[0].id;
+          console.log(`🎯 Ketemu! Cart ID aslinya adalah: ${cartIdToComplete}`);
+        }
+      }
+
+      // 🌟 Eksekusi Order kalau ID-nya sudah berwujud cart_
+      if (cartIdToComplete?.startsWith("cart_")) {
+        console.log(`🎉 UANG MASUK! Memproses Cart: ${cartIdToComplete} menjadi Order...`);
+        
+        // 🌟 JURUS PENANGKAL TYPESCRIPT: Tambahkan 'as any' untuk workflow
+        await completeCartWorkflow(req.scope).run({
+          input: { id: cartIdToComplete }
+        } as any);
+
+        console.log(`✅ BOOM! Cart ${cartIdToComplete} resmi mendarat di Dashboard Admin!`);
+      } else {
+        console.log("⚠️ ROBOT DIAM: Gagal melacak atau menemukan ID Cart yang valid.");
+      }
     } catch (error: any) {
       console.error("❌ Gagal mengeksekusi Order:", error?.message || error);
     }
   } else {
-    // 🌟 CCTV 3: Kalau ditolak, kita tahu alasannya!
-    console.log("⚠️ ROBOT DIAM: Order di-skip karena status bukan PAID atau bukan ID Cart.");
+    console.log("⚠️ ROBOT DIAM: Status pembayaran bukan PAID.");
   }
 
   return res.status(200).send("OK");

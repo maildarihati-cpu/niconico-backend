@@ -18,14 +18,15 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
       const rawStoreUrl = process.env.STOREFRONT_URL || "https://dev.niconicoresort.com";
       const storeUrl = rawStoreUrl.split(',')[0].trim();
 
-      // 🌟 JURUS SAPU JAGAT: Geledah seluruh data Medusa untuk mencari "cart_..."
-      const contextStr = JSON.stringify(context);
-      const match = contextStr.match(/(cart_[a-zA-Z0-9]+)/);
-      const cartId = match ? match[1] : `order_niconico_${Date.now()}`;
+      // 🌟 JURUS BARU: Ambil Payment Collection ID (pay_col_) bawaan asli Medusa
+      const payColId = context.resource_id;
+      const externalId = payColId ? payColId : `order_niconico_${Date.now()}`;
+
+      console.log("🚀 MENGIRIM TAGIHAN KE XENDIT DENGAN ID:", externalId);
 
       const invoice = await this.xenditClient.Invoice.createInvoice({
         data: {
-          externalId: cartId, // 👈 Sekarang PASTI dijamin berisi "cart_..."
+          externalId: externalId, 
           amount: context.amount || 0,
           description: `Niconico Resort Payment - ${context?.email || 'Customer'}`,
           successRedirectUrl: `${storeUrl}/checkout/success`, 
