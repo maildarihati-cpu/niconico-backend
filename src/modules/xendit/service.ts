@@ -18,9 +18,18 @@ class XenditPaymentProvider extends AbstractPaymentProvider {
       const rawStoreUrl = process.env.STOREFRONT_URL || "https://dev.niconicoresort.com";
       const storeUrl = rawStoreUrl.split(',')[0].trim();
 
-      // 🌟 JURUS BARU: Ambil Payment Collection ID (pay_col_) bawaan asli Medusa
-      const payColId = context.resource_id;
-      const externalId = payColId ? payColId : `order_niconico_${Date.now()}`;
+      // 🌟 JURUS X-RAY: Geledah semua isi perut Medusa untuk mencari ID!
+      const contextStr = JSON.stringify(context);
+      const cartMatch = contextStr.match(/(cart_[a-zA-Z0-9]+)/);
+      const payColMatch = contextStr.match(/(pay_col_[a-zA-Z0-9]+)/);
+      const paySesMatch = contextStr.match(/(payses_[a-zA-Z0-9]+)/);
+      const resMatch = contextStr.match(/(res_[a-zA-Z0-9]+)/);
+
+      // Prioritas Penculikan: 1. Cart, 2. PayCol, 3. PaySes, 4. Res, 5. Cadangan
+      const externalId = cartMatch ? cartMatch[1] : 
+                        (payColMatch ? payColMatch[1] : 
+                        (paySesMatch ? paySesMatch[1] : 
+                        (resMatch ? resMatch[1] : `order_niconico_${Date.now()}`)));
 
       console.log("🚀 MENGIRIM TAGIHAN KE XENDIT DENGAN ID:", externalId);
 

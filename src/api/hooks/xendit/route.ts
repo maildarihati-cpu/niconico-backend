@@ -6,7 +6,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   console.log("🚨 [XENDIT WEBHOOK MASUK]:", JSON.stringify(payload, null, 2));
 
   const invoiceData = payload?.data?.id ? payload.data : payload;
-  const incomingId = invoiceData?.external_id;
+  let incomingId = invoiceData?.external_id;
   const status = invoiceData?.status;
 
   console.log(`📌 Mengecek Syarat - Status: ${status}, ID Masuk: ${incomingId}`);
@@ -14,13 +14,25 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   if (status === "PAID") {
     try {
       let cartIdToComplete = incomingId;
+      const query = req.scope.resolve("query");
 
-      // 🌟 Kalau tiketnya berawalan pay_col_, kita bongkar database buat cari Cart aslinya!
+      // 🌟 PELACAK LAPIS 1: Kalau tiketnya Payment Session (payses_)
+      if (incomingId?.startsWith("payses_")) {
+        console.log(`🔍 Melacak dari Payment Session: ${incomingId}...`);
+        const { data: sessions } = await query.graph({
+          entity: "payment_session",
+          fields: ["payment_collection_id"],
+          filters: { id: incomingId } as any 
+        });
+        if (sessions && sessions.length > 0 && sessions[0].payment_collection_id) {
+          incomingId = sessions[0].payment_collection_id; // Lempar ke pelacak lapis 2
+          console.log(`🎯 Session mengarah ke PayCol: ${incomingId}`);
+        }
+      }
+
+      // 🌟 PELACAK LAPIS 2: Kalau tiketnya Payment Collection (pay_col_)
       if (incomingId?.startsWith("pay_col_")) {
         console.log(`🔍 Melacak Cart ID dari Payment Collection: ${incomingId}...`);
-        const query = req.scope.resolve("query");
-        
-        // 🌟 JURUS PENANGKAL TYPESCRIPT: Tambahkan 'as any' di bagian filters
         const { data: carts } = await query.graph({
           entity: "cart",
           fields: ["id"],
@@ -33,11 +45,10 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         }
       }
 
-      // 🌟 Eksekusi Order kalau ID-nya sudah berwujud cart_
+      // 🌟 EKSEKUSI FINAL
       if (cartIdToComplete?.startsWith("cart_")) {
         console.log(`🎉 UANG MASUK! Memproses Cart: ${cartIdToComplete} menjadi Order...`);
         
-        // 🌟 JURUS PENANGKAL TYPESCRIPT: Tambahkan 'as any' untuk workflow
         await completeCartWorkflow(req.scope).run({
           input: { id: cartIdToComplete }
         } as any);
