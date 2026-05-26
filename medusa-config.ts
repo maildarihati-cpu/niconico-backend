@@ -7,12 +7,15 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      // 🌟 URL dibersihkan dari garis miring (/) di bagian akhir
+      // String CORS tunggal yang sudah bersih dan lengkap
       storeCors: process.env.STORE_CORS || "https://dev.niconicoresort.com,http://localhost:8000,http://localhost:3000",
-      adminCors: process.env.ADMIN_CORS || "https://admin.niconicoresort.com,http://localhost:7000,http://localhost:9000",
-      authCors: process.env.AUTH_CORS || "https://admin.niconicoresort.com,http://localhost:8000,http://localhost:3000",
+      adminCors: process.env.ADMIN_CORS || "https://admin.niconicoresort.com,http://localhost:7000,http://localhost:9000,https://api.niconicoresort.com",
+      authCors: process.env.AUTH_CORS || "https://admin.niconicoresort.com,http://localhost:8000,http://localhost:3000,https://api.niconicoresort.com",
+      
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+      
+      // 🌟 KITA HAPUS cookieOptions DARI SINI AGAR TIDAK ERROR TYPE AGAIN
     }
   },
 
