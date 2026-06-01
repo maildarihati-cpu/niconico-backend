@@ -7,20 +7,21 @@ import { useNavigate } from "react-router-dom"
 export default function CustomerSpentPage() {
   const [customersData, setCustomersData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   
   const navigate = useNavigate() 
 
   useEffect(() => {
     const fetchCustomerSpent = async () => {
       setIsLoading(true)
+      setErrorMsg(null)
       try {
-        // 🌟 SENSOR OTOMATIS: Anti Nyasar!
-        // Jika jalan di localhost tapi BUKAN di port 9000 (berarti lagi di server Dev Admin), arahkan ke 9000.
-        // Jika sudah di-deploy (Production), gunakan alamat bawaannya ("").
-        const isLocalDev = typeof window !== "undefined" && window.location.hostname === "localhost" && window.location.port !== "9000"
-        const baseUrl = isLocalDev ? "http://localhost:9000" : ""
+        // 🌟 RADAR ANTI-NYASAR!
+        // Berdasarkan screenshot Bos, ini adalah alamat asli backend Medusa-nya:
+        const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost"
+        const baseUrl = isLocal ? "http://localhost:9000" : "https://api.niconicoresort.com"
 
-        // Double Fetch: Tarik Kustomer & Tarik Order (Medusa tidak bisa memblokir ini)
+        // Double Fetch ke alamat Backend yang BENAR
         const [customersRes, ordersRes] = await Promise.all([
           fetch(`${baseUrl}/admin/customers?limit=250`, {
             credentials: "include", 
@@ -33,21 +34,21 @@ export default function CustomerSpentPage() {
         ])
 
         if (!customersRes.ok || !ordersRes.ok) {
-          throw new Error("HTTP Error saat menarik data dari API")
+          throw new Error("HTTP Error. Pastikan sesi Admin masih aktif (Tidak expired).")
         }
 
         const { customers } = await customersRes.json()
         const { orders } = await ordersRes.json()
 
-        if (!customers || !orders) return
+        if (!customers || !orders) {
+          setErrorMsg("Data tidak ditemukan di server.")
+          return
+        }
 
-        // 🌟 KAWINKAN DATA: Hitung total order berdasarkan customer_id
+        // 🌟 KAWINKAN DATA
         const calculatedCustomers = customers.map((customer: any) => {
           const customerOrders = orders.filter((o: any) => o.customer_id === customer.id)
-          
-          const totalSpent = customerOrders.reduce((sum: number, order: any) => {
-            return sum + (order.total || 0)
-          }, 0)
+          const totalSpent = customerOrders.reduce((sum: number, order: any) => sum + (order.total || 0), 0)
 
           return {
             ...customer,
@@ -56,11 +57,11 @@ export default function CustomerSpentPage() {
           }
         })
 
-        // Urutkan dari Sultan tertinggi ke terendah
         const sortedCustomers = calculatedCustomers.sort((a: any, b: any) => b.total_spent - a.total_spent)
         setCustomersData(sortedCustomers)
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to fetch Customer Spent data:", error)
+        setErrorMsg(error.message || "Terjadi kesalahan saat menarik data.")
       } finally {
         setIsLoading(false)
       }
@@ -93,7 +94,13 @@ export default function CustomerSpentPage() {
           {isLoading ? (
             <Table.Row>
               <Table.Cell {...({ colSpan: 6 } as any)} className="text-center py-8">
-                <Text className="text-ui-fg-subtle animate-pulse">Fetching and calculating records...</Text>
+                <Text className="text-ui-fg-subtle animate-pulse">Fetching and calculating records from api.niconicoresort.com...</Text>
+              </Table.Cell>
+            </Table.Row>
+          ) : errorMsg ? (
+             <Table.Row>
+              <Table.Cell {...({ colSpan: 6 } as any)} className="text-center py-8">
+                <Text className="text-ui-fg-error">{errorMsg}</Text>
               </Table.Cell>
             </Table.Row>
           ) : customersData.length > 0 ? (
