@@ -16,25 +16,23 @@ export default function CustomerSpentPage() {
       setIsLoading(true)
       setErrorMsg(null)
       try {
-        // 🌟 RADAR ANTI-NYASAR!
-        // Berdasarkan screenshot Bos, ini adalah alamat asli backend Medusa-nya:
         const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost"
         const baseUrl = isLocal ? "http://localhost:9000" : "https://api.niconicoresort.com"
 
-        // Double Fetch ke alamat Backend yang BENAR
+        // 🌟 PERBAIKAN FATAL: Kita paksa Medusa V2 mengeluarkan id, customer_id, dan total!
         const [customersRes, ordersRes] = await Promise.all([
-          fetch(`${baseUrl}/admin/customers?limit=250`, {
+          fetch(`${baseUrl}/admin/customers?limit=250&fields=id,email,first_name,last_name`, {
             credentials: "include", 
             headers: { "Accept": "application/json" }
           }),
-          fetch(`${baseUrl}/admin/orders?limit=1000`, {
+          fetch(`${baseUrl}/admin/orders?limit=1000&fields=id,customer_id,total`, {
             credentials: "include", 
             headers: { "Accept": "application/json" }
           })
         ])
 
         if (!customersRes.ok || !ordersRes.ok) {
-          throw new Error("HTTP Error. Pastikan sesi Admin masih aktif (Tidak expired).")
+          throw new Error("HTTP Error. Pastikan sesi Admin aktif.")
         }
 
         const { customers } = await customersRes.json()
@@ -45,9 +43,15 @@ export default function CustomerSpentPage() {
           return
         }
 
-        // 🌟 KAWINKAN DATA
+        // 🌟 KAWINKAN DATA DENGAN AMAN
         const calculatedCustomers = customers.map((customer: any) => {
-          const customerOrders = orders.filter((o: any) => o.customer_id === customer.id)
+          // Cari orderan yang customer_id-nya cocok
+          const customerOrders = orders.filter((o: any) => {
+             // Antisipasi struktur objek bersarang dari Medusa
+             const cId = o.customer_id || (o.customer && o.customer.id)
+             return cId === customer.id
+          })
+          
           const totalSpent = customerOrders.reduce((sum: number, order: any) => sum + (order.total || 0), 0)
 
           return {
@@ -108,7 +112,8 @@ export default function CustomerSpentPage() {
               <Table.Row 
                 key={customer.id} 
                 className="cursor-pointer hover:bg-ui-bg-base-hover transition-colors"
-                onClick={() => navigate(`/a/customers/${customer.id}`)}
+                // 🌟 PERBAIKAN FATAL: Membuang '/a/' dari rute navigasi untuk Medusa V2
+                onClick={() => navigate(`/customers/${customer.id}`)}
               >
                 <Table.Cell className="font-medium text-ui-fg-interactive">
                   {customer.email || "-"}
@@ -125,7 +130,8 @@ export default function CustomerSpentPage() {
                     size="small"
                     onClick={(e) => {
                       e.stopPropagation(); 
-                      navigate(`/a/customers/${customer.id}`);
+                      // 🌟 PERBAIKAN FATAL: Membuang '/a/' dari tombol juga
+                      navigate(`/customers/${customer.id}`);
                     }}
                   >
                     View Profile
