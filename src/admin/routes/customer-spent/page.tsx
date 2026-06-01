@@ -14,39 +14,44 @@ export default function CustomerSpentPage() {
     const fetchCustomerSpent = async () => {
       setIsLoading(true)
       try {
-        // 🌟 OBAT AMPUH: Tambahkan credentials: "include" 
-        // Supaya sesi Admin kita diakui oleh server Medusa!
-        const res = await fetch(`/admin/customers?fields=*orders,*orders.total&limit=50`, {
-          credentials: "include", 
-          headers: {
-            "Accept": "application/json"
-          }
-        })
+        // 🌟 JURUS ANTI-GAGAL: DOUBLE FETCH!
+        // Kita tarik murni data kustomer dan data order secara terpisah, 
+        // lalu kita hitung manual. Medusa tidak bisa memblokir cara ini!
+        const [customersRes, ordersRes] = await Promise.all([
+          fetch(`/admin/customers?limit=250`, { credentials: "include" }),
+          fetch(`/admin/orders?limit=1000`, { credentials: "include" })
+        ])
 
-        if (!res.ok) {
-          console.error("HTTP Error:", res.status, await res.text())
+        if (!customersRes.ok || !ordersRes.ok) {
+          throw new Error("Failed to fetch data from Medusa API")
+        }
+
+        const { customers } = await customersRes.json()
+        const { orders } = await ordersRes.json()
+
+        if (!customers || !orders) {
+          console.warn("No customers or orders found.")
           return
         }
 
-        const response = await res.json()
-
-        if (!response.customers) {
-          console.log("No customers found in the response.")
-          return
-        }
-
-        const calculatedCustomers = response.customers.map((customer: any) => {
-          const totalSpent = customer.orders?.reduce((sum: number, order: any) => {
+        // 🌟 KAWINKAN DATA: Hitung total order berdasarkan customer_id
+        const calculatedCustomers = customers.map((customer: any) => {
+          // Cari orderan milik customer ini
+          const customerOrders = orders.filter((o: any) => o.customer_id === customer.id)
+          
+          // Jumlahkan semua uangnya
+          const totalSpent = customerOrders.reduce((sum: number, order: any) => {
             return sum + (order.total || 0)
-          }, 0) || 0
+          }, 0)
 
           return {
             ...customer,
             total_spent: totalSpent,
-            order_count: customer.orders?.length || 0
+            order_count: customerOrders.length
           }
         })
 
+        // Urutkan dari Sultan tertinggi ke terendah
         const sortedCustomers = calculatedCustomers.sort((a: any, b: any) => b.total_spent - a.total_spent)
         setCustomersData(sortedCustomers)
       } catch (error) {
@@ -83,7 +88,7 @@ export default function CustomerSpentPage() {
           {isLoading ? (
             <Table.Row>
               <Table.Cell {...({ colSpan: 6 } as any)} className="text-center py-8">
-                <Text className="text-ui-fg-subtle animate-pulse">Calculating total transactions...</Text>
+                <Text className="text-ui-fg-subtle animate-pulse">Fetching and calculating records...</Text>
               </Table.Cell>
             </Table.Row>
           ) : customersData.length > 0 ? (
@@ -94,7 +99,7 @@ export default function CustomerSpentPage() {
                 onClick={() => navigate(`/a/customers/${customer.id}`)}
               >
                 <Table.Cell className="font-medium text-ui-fg-interactive">
-                  {customer.email}
+                  {customer.email || "-"}
                 </Table.Cell>
                 <Table.Cell>{customer.first_name || "-"}</Table.Cell>
                 <Table.Cell>{customer.last_name || "-"}</Table.Cell>
