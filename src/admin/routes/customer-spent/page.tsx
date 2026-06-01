@@ -14,32 +14,37 @@ export default function CustomerSpentPage() {
     const fetchCustomerSpent = async () => {
       setIsLoading(true)
       try {
-        // 🌟 JURUS ANTI-GAGAL: DOUBLE FETCH!
-        // Kita tarik murni data kustomer dan data order secara terpisah, 
-        // lalu kita hitung manual. Medusa tidak bisa memblokir cara ini!
+        // 🌟 SENSOR OTOMATIS: Anti Nyasar!
+        // Jika jalan di localhost tapi BUKAN di port 9000 (berarti lagi di server Dev Admin), arahkan ke 9000.
+        // Jika sudah di-deploy (Production), gunakan alamat bawaannya ("").
+        const isLocalDev = typeof window !== "undefined" && window.location.hostname === "localhost" && window.location.port !== "9000"
+        const baseUrl = isLocalDev ? "http://localhost:9000" : ""
+
+        // Double Fetch: Tarik Kustomer & Tarik Order (Medusa tidak bisa memblokir ini)
         const [customersRes, ordersRes] = await Promise.all([
-          fetch(`/admin/customers?limit=250`, { credentials: "include" }),
-          fetch(`/admin/orders?limit=1000`, { credentials: "include" })
+          fetch(`${baseUrl}/admin/customers?limit=250`, {
+            credentials: "include", 
+            headers: { "Accept": "application/json" }
+          }),
+          fetch(`${baseUrl}/admin/orders?limit=1000`, {
+            credentials: "include", 
+            headers: { "Accept": "application/json" }
+          })
         ])
 
         if (!customersRes.ok || !ordersRes.ok) {
-          throw new Error("Failed to fetch data from Medusa API")
+          throw new Error("HTTP Error saat menarik data dari API")
         }
 
         const { customers } = await customersRes.json()
         const { orders } = await ordersRes.json()
 
-        if (!customers || !orders) {
-          console.warn("No customers or orders found.")
-          return
-        }
+        if (!customers || !orders) return
 
         // 🌟 KAWINKAN DATA: Hitung total order berdasarkan customer_id
         const calculatedCustomers = customers.map((customer: any) => {
-          // Cari orderan milik customer ini
           const customerOrders = orders.filter((o: any) => o.customer_id === customer.id)
           
-          // Jumlahkan semua uangnya
           const totalSpent = customerOrders.reduce((sum: number, order: any) => {
             return sum + (order.total || 0)
           }, 0)
