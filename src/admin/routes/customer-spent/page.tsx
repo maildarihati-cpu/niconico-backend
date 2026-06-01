@@ -14,12 +14,26 @@ export default function CustomerSpentPage() {
     const fetchCustomerSpent = async () => {
       setIsLoading(true)
       try {
-        // 🌟 PERBAIKAN 1: Hapus import SDK, kita pakai fetch bawaan browser!
-        // Karena jalan di Admin, ini otomatis ter-otentikasi.
-        const res = await fetch(`/admin/customers?fields=*orders,*orders.total&limit=50`)
+        // 🌟 OBAT AMPUH: Tambahkan credentials: "include" 
+        // Supaya sesi Admin kita diakui oleh server Medusa!
+        const res = await fetch(`/admin/customers?fields=*orders,*orders.total&limit=50`, {
+          credentials: "include", 
+          headers: {
+            "Accept": "application/json"
+          }
+        })
+
+        if (!res.ok) {
+          console.error("HTTP Error:", res.status, await res.text())
+          return
+        }
+
         const response = await res.json()
 
-        if (!response.customers) return
+        if (!response.customers) {
+          console.log("No customers found in the response.")
+          return
+        }
 
         const calculatedCustomers = response.customers.map((customer: any) => {
           const totalSpent = customer.orders?.reduce((sum: number, order: any) => {
@@ -33,11 +47,10 @@ export default function CustomerSpentPage() {
           }
         })
 
-        // 🌟 PERBAIKAN 2: Tambahkan tipe data (a: any, b: any) biar TypeScript gak ngomel
         const sortedCustomers = calculatedCustomers.sort((a: any, b: any) => b.total_spent - a.total_spent)
         setCustomersData(sortedCustomers)
       } catch (error) {
-        console.error("Gagal menarik data Customer Spent:", error)
+        console.error("Failed to fetch Customer Spent data:", error)
       } finally {
         setIsLoading(false)
       }
@@ -51,27 +64,26 @@ export default function CustomerSpentPage() {
       <div className="flex flex-col gap-y-2 mb-8">
         <Heading level="h1">Customer Spent</Heading>
         <Text className="text-ui-fg-subtle">
-          Pantau total pembelanjaan kustomer. Klik baris kustomer untuk melihat detail pesanan mereka.
+          Monitor total customer spending. Click a row to view their detailed order history.
         </Text>
       </div>
 
       <Table>
         <Table.Header>
           <Table.Row>
-            <Table.HeaderCell>Email Kustomer</Table.HeaderCell>
-            <Table.HeaderCell>Nama Depan</Table.HeaderCell>
-            <Table.HeaderCell>Nama Belakang</Table.HeaderCell>
-            <Table.HeaderCell className="text-center">Total Order</Table.HeaderCell>
-            <Table.HeaderCell className="text-right">Total Spent (Rp)</Table.HeaderCell>
-            <Table.HeaderCell className="text-center">Aksi</Table.HeaderCell>
+            <Table.HeaderCell>Customer Email</Table.HeaderCell>
+            <Table.HeaderCell>First Name</Table.HeaderCell>
+            <Table.HeaderCell>Last Name</Table.HeaderCell>
+            <Table.HeaderCell className="text-center">Total Orders</Table.HeaderCell>
+            <Table.HeaderCell className="text-right">Total Spent (IDR)</Table.HeaderCell>
+            <Table.HeaderCell className="text-center">Action</Table.HeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {isLoading ? (
             <Table.Row>
-              {/* 🌟 PERBAIKAN 3: Akali TypeScript dengan (...{ colSpan: 6 } as any) */}
               <Table.Cell {...({ colSpan: 6 } as any)} className="text-center py-8">
-                <Text className="text-ui-fg-subtle animate-pulse">Menghitung total transaksi...</Text>
+                <Text className="text-ui-fg-subtle animate-pulse">Calculating total transactions...</Text>
               </Table.Cell>
             </Table.Row>
           ) : customersData.length > 0 ? (
@@ -88,7 +100,7 @@ export default function CustomerSpentPage() {
                 <Table.Cell>{customer.last_name || "-"}</Table.Cell>
                 <Table.Cell className="text-center">{customer.order_count}</Table.Cell>
                 <Table.Cell className="text-right font-bold">
-                  {customer.total_spent.toLocaleString("id-ID")}
+                  Rp {customer.total_spent.toLocaleString("en-US")}
                 </Table.Cell>
                 <Table.Cell className="text-center">
                   <Button 
@@ -99,16 +111,15 @@ export default function CustomerSpentPage() {
                       navigate(`/a/customers/${customer.id}`);
                     }}
                   >
-                    Lihat Profil
+                    View Profile
                   </Button>
                 </Table.Cell>
               </Table.Row>
             ))
           ) : (
             <Table.Row>
-              {/* 🌟 PERBAIKAN 3: Akali TypeScript dengan (...{ colSpan: 6 } as any) */}
               <Table.Cell {...({ colSpan: 6 } as any)} className="text-center py-8">
-                <Text className="text-ui-fg-subtle">Belum ada data kustomer.</Text>
+                <Text className="text-ui-fg-subtle">No customer data found.</Text>
               </Table.Cell>
             </Table.Row>
           )}
