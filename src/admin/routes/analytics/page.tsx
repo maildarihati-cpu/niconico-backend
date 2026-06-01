@@ -70,7 +70,6 @@ export default function AnalyticsDashboard() {
         const totalRev = filteredOrders.reduce((sum: number, o: any) => sum + (o.total || 0), 0)
         const calculatedAov = filteredOrders.length > 0 ? totalRev / filteredOrders.length : 0
 
-        // Build Real Sales Trend Chart from Medusa Orders
         const groupedByDate = filteredOrders.reduce((acc: any, order: any) => {
           const d = order.created_at.split("T")[0]
           acc[d] = (acc[d] || 0) + (order.total || 0)
@@ -79,16 +78,11 @@ export default function AnalyticsDashboard() {
 
         const realTrendData = Object.entries(groupedByDate)
           .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-          .map(([date, total]) => ({
-            name: date,
-            Current: total,
-            Previous: 0 // Kept at 0 unless historical API is integrated
-          }))
+          .map(([date, total]) => ({ name: date, Current: total, Previous: 0 }))
 
         setSalesTrend(realTrendData)
 
-        // 2. FETCH REAL POSTHOG DATA (Requires Token in .env)
-        // If no token is provided, it stays 0/empty. No fake data.
+        // 2. FETCH REAL POSTHOG DATA (MENGGUNAKAN API US CLOUD)
         let liveVis = 0
         let bRate = 0
         let cAbandon = 0
@@ -100,22 +94,55 @@ export default function AnalyticsDashboard() {
         const posthogProjectID = process.env.MEDUSA_ADMIN_POSTHOG_PROJECT_ID
 
         if (posthogToken && posthogProjectID) {
-            // Fetch real data from PostHog API here when ready
-            // Example: const phRes = await fetch(`https://app.posthog.com/api/projects/...`)
+          const phHeaders = { "Authorization": `Bearer ${posthogToken}` }
+          const phBaseUrl = "https://us.i.posthog.com/api/projects"
+
+          try {
+            // A. Tarik Pengunjung Live (5 Menit Terakhir)
+            const liveRes = await fetch(`${phBaseUrl}/${posthogProjectID}/events/?event=$pageview&date_from=-5m`, { headers: phHeaders })
+            if (liveRes.ok) {
+              const liveData = await liveRes.json()
+              const uniqueSessions = new Set(liveData.results?.map((r: any) => r.distinct_id))
+              liveVis = uniqueSessions.size
+            }
+
+            // B. Tarik Halaman Terpopuler & Atribusi Trafik
+            const pagesRes = await fetch(`${phBaseUrl}/${posthogProjectID}/events/?event=$pageview&date_from=${startDate}&date_to=${endDate}&limit=500`, { headers: phHeaders })
+            if (pagesRes.ok) {
+              const pagesData = await pagesRes.json()
+              const pageCounts: Record<string, number> = {}
+              const sourceCounts: Record<string, number> = {}
+
+              pagesData.results?.forEach((r: any) => {
+                const url = r.properties?.$pathname || "Unknown"
+                pageCounts[url] = (pageCounts[url] || 0) + 1
+
+                let source = r.properties?.$referring_domain || "Direct"
+                if (source.includes("google")) source = "Google Organic"
+                if (source.includes("instagram") || source.includes("facebook")) source = "Meta Ads (FB/IG)"
+                sourceCounts[source] = (sourceCounts[source] || 0) + 1
+              })
+              
+              realTopPages = Object.entries(pageCounts)
+                .map(([path, Views]) => ({ path, Views }))
+                .sort((a: any, b: any) => b.Views - a.Views).slice(0, 5)
+
+              realTrafficSources = Object.entries(sourceCounts)
+                .map(([source, Visitors]) => ({ source, Visitors }))
+                .sort((a: any, b: any) => b.Visitors - a.Visitors).slice(0, 4)
+            }
+          } catch (e) {
+            console.error("Gagal menyedot data dari API PostHog:", e)
+          }
         }
 
         setMetrics({
-          totalRevenue: totalRev,
-          revenueChange: 0, 
-          aov: calculatedAov,
-          liveVisitors: liveVis,
-          bounceRate: bRate,
-          cartAbandonment: cAbandon
+          totalRevenue: totalRev, revenueChange: 0, aov: calculatedAov,
+          liveVisitors: liveVis, bounceRate: bRate, cartAbandonment: cAbandon
         })
 
-        setTrafficSources(realTrafficSources)
-        setTopProducts(realTopProducts)
-        setTopPages(realTopPages)
+        if (realTrafficSources.length > 0) setTrafficSources(realTrafficSources)
+        if (realTopPages.length > 0) setTopPages(realTopPages)
 
         setError(null)
       } catch (err: any) {
@@ -201,9 +228,9 @@ export default function AnalyticsDashboard() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-md border border-gray-300 shadow-sm">
             <Calendar className="text-gray-600 w-4 h-4" />
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-xs bg-transparent border-none outline-none font-bold text-gray-900 w-[100px]" />
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none font-bold text-gray-900 cursor-pointer w-[110px]" />
             <span className="text-gray-500 text-xs font-medium">to</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-xs bg-transparent border-none outline-none font-bold text-gray-900 w-[100px]" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none font-bold text-gray-900 cursor-pointer w-[110px]" />
           </div>
           
           <button onClick={() => setIsExportModalOpen(true)} className="flex items-center gap-x-2 bg-white border border-gray-300 px-4 py-2 rounded-md text-sm font-bold text-gray-900 hover:bg-gray-50 shadow-sm transition-colors">
@@ -309,7 +336,7 @@ export default function AnalyticsDashboard() {
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
                 <AlertTriangle className="w-6 h-6 text-gray-300 mb-2" />
-                <Text className="text-gray-400 text-xs font-medium">PostHog Analytics is not connected.<br/>Awaiting API Integration.</Text>
+                <Text className="text-gray-400 text-xs font-medium">PostHog Analytics is waiting for traffic data.<br/>Awaiting API Integration Sync.</Text>
               </div>
             )}
           </div>
