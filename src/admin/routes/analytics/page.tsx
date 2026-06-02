@@ -1,12 +1,10 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Container, Heading, Text, Button } from "@medusajs/ui"
+import { Container, Heading, Text, } from "@medusajs/ui"
 import { useEffect, useState, useRef } from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts"
 
 import { 
   ChartBar, 
-  ArrowUpRight, 
-  ArrowDownRight, 
   Users, 
   ShoppingBag, 
   Percent, 
@@ -228,9 +226,21 @@ export default function AnalyticsDashboard() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-md border border-gray-300 shadow-sm">
             <Calendar className="text-gray-600 w-4 h-4" />
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none font-bold text-gray-900 cursor-pointer w-[110px]" />
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              onClick={(e) => e.currentTarget.showPicker()} 
+              className="text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded px-2 py-1 outline-none font-bold text-gray-900 cursor-pointer w-[120px] transition-colors" 
+            />
             <span className="text-gray-500 text-xs font-medium">to</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 outline-none font-bold text-gray-900 cursor-pointer w-[110px]" />
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+              onClick={(e) => e.currentTarget.showPicker()} 
+              className="text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded px-2 py-1 outline-none font-bold text-gray-900 cursor-pointer w-[120px] transition-colors" 
+            />
           </div>
           
           <button onClick={() => setIsExportModalOpen(true)} className="flex items-center gap-x-2 bg-white border border-gray-300 px-4 py-2 rounded-md text-sm font-bold text-gray-900 hover:bg-gray-50 shadow-sm transition-colors">
