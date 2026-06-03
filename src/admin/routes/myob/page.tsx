@@ -5,7 +5,7 @@ import { BuildingStorefront } from "@medusajs/icons";
 
 // Deteksi otomatis URL Backend (Local vs Live)
 const BACKEND_URL = import.meta.env.VITE_MEDUSA_BACKEND_URL || 
-                    (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:9000" : "api.niconico-resort.com");
+                    (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:9000" : "api.niconicoresort.com");
 
 // 🌟 FUNGSI PENYEDOT TOKEN MEDUSA V2 (MASTER KEY ANTI 401)
 const getAuthHeaders = (isUpload = false) => {

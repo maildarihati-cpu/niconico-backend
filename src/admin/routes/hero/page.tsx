@@ -6,7 +6,7 @@ import { MediaLibrary } from "../../components/media-library"
 
 const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
   ? "http://localhost:9000" 
-  : "https://api.niconico-resort.com"
+  : "https://api.niconicoresort.com"
 
 const getImageUrl = (url: string | null) => {
   if (!url) return "";
