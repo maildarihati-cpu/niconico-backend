@@ -2,18 +2,38 @@ import { Button, FocusModal, Heading, Text, toast } from "@medusajs/ui"
 import { Image as ImageIcon, UploadCloud, CheckCircle2, Loader2 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 
-// 🌟 PERBAIKAN FATAL: Deteksi URL otomatis tanpa process.env agar Vite tidak CRASH!
+// 🌟 PERBAIKAN FATAL 1: Arahkan ke gerbang utama resmi!
 const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
   ? "http://localhost:9000" 
-  : "https://niconico-backend-production.up.railway.app"; 
+  : "https://api.niconicoresort.com"; 
 
-// 🌟 FUNGSI PENYELAMAT FOTO: Memastikan URL foto selalu mengarah ke Railway
+// 🌟 FUNGSI PENYELAMAT FOTO
 const getImageUrl = (url: string | null) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
   const cleanPath = url.startsWith("/") ? url : `/${url}`;
   return `${BACKEND_URL}${cleanPath}`;
 }
+
+// 🌟 PERBAIKAN FATAL 2: FUNGSI PENYEDOT TOKEN MEDUSA V2 (MASTER KEY)
+const getAuthHeaders = (isUpload = false) => {
+  const headers: Record<string, string> = {};
+  
+  if (!isUpload) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (typeof document !== "undefined") {
+    const jwtMatch = document.cookie.match(/(?:^|;)\s*_medusa_jwt=([^;]*)/);
+    const adminMatch = document.cookie.match(/(?:^|;)\s*medusa_admin_token=([^;]*)/);
+    const token = (jwtMatch && jwtMatch[1]) || (adminMatch && adminMatch[1]);
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+};
 
 interface HeroFile {
   id: string
@@ -40,7 +60,8 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
         
       const res = await fetch(url, {
         method: "GET",
-        credentials: "include" // 🌟 WAJIB TEMBUS CORS
+        credentials: "include", // 🌟 WAJIB TEMBUS CORS
+        headers: getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
       })
       if (!res.ok) throw new Error("Gagal tarik list")
       const data = await res.json()
@@ -66,6 +87,7 @@ export const MediaLibrary = ({ onSelect, category, trigger }: MediaLibraryProps)
       const res = await fetch(`${BACKEND_URL}/admin/hero/upload`, {
         method: "POST",
         credentials: "include", // 🌟 WAJIB TEMBUS CORS
+        headers: getAuthHeaders(true), // 🌟 INJEKSI KUNCI UPLOAD DI SINI
         body: formData
       })
       

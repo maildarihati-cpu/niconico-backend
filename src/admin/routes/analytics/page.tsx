@@ -14,6 +14,20 @@ import {
   AlertTriangle
 } from "lucide-react"
 
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (typeof document !== "undefined") {
+    const jwtMatch = document.cookie.match(/(?:^|;)\s*_medusa_jwt=([^;]*)/);
+    const adminMatch = document.cookie.match(/(?:^|;)\s*medusa_admin_token=([^;]*)/);
+    const token = (jwtMatch && jwtMatch[1]) || (adminMatch && adminMatch[1]);
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+};
+
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,8 +69,10 @@ export default function AnalyticsDashboard() {
         const baseUrl = isLocal ? "http://localhost:9000" : "https://api.niconicoresort.com"
         
         // 1. FETCH REAL MEDUSA ORDERS
-        const ordersRes = await fetch(`${baseUrl}/admin/orders?limit=1000&fields=id,total,created_at`, { credentials: "include" })
-        if (!ordersRes.ok) throw new Error("Failed to fetch transaction data from Medusa.")
+        const ordersRes = await fetch(`${baseUrl}/admin/orders?limit=1000&fields=id,total,created_at`, { 
+              credentials: "include",
+              headers: getAuthHeaders() // 🌟 INI DIA! KITA PANGGIL FUNGSINYA DI SINI!
+            })
         
         const { orders } = await ordersRes.json()
         
