@@ -17,6 +17,22 @@ const getImageUrl = (url: string | null) => {
   return `${BACKEND_URL}${cleanPath}`;
 }
 
+// 🌟 FUNGSI PENYEDOT TOKEN MEDUSA V2 (MASTER KEY ANTI 401)
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = {};
+  if (typeof document !== "undefined") {
+    // Sedot token dari cookie browser
+    const jwtMatch = document.cookie.match(/(?:^|;)\s*_medusa_jwt=([^;]*)/);
+    const adminMatch = document.cookie.match(/(?:^|;)\s*medusa_admin_token=([^;]*)/);
+    const token = (jwtMatch && jwtMatch[1]) || (adminMatch && adminMatch[1]);
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+};
+
 // --- DATABASE BENDERA & NEGARA LENGKAP (WP STYLE) ---
 const countries = [
   { code: "ID", name: "Indonesia", flag: "🇮🇩" },
@@ -61,7 +77,8 @@ const StoryTellerAdmin = () => {
   const fetchReviews = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/reviews`, {
-        credentials: "include" 
+        credentials: "include",
+        headers: getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
       })
       if (!res.ok) throw new Error("Gagal mengambil data")
       const data = await res.json()
@@ -97,7 +114,10 @@ const StoryTellerAdmin = () => {
       
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI (Gabung dengan Content-Type)
+        },
         credentials: "include", 
         body: JSON.stringify(formData)
       })
@@ -122,7 +142,8 @@ const StoryTellerAdmin = () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/reviews/${id}`, { 
         method: "DELETE",
-        credentials: "include" 
+        credentials: "include",
+        headers: getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
       })
       
       if (!res.ok) throw new Error("Delete failed")

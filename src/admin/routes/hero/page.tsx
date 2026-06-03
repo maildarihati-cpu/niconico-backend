@@ -4,18 +4,32 @@ import { Plus, Image as ImageIcon, Trash, Save, LayoutDashboard, RefreshCcw } fr
 import { useState, useEffect, useCallback } from "react"
 import { MediaLibrary } from "../../components/media-library" 
 
-// 🌟 OBAT ANTI CONNECTION REFUSED & ANTI CRASH
 const BACKEND_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
   ? "http://localhost:9000" 
   : "https://niconico-backend-production.up.railway.app"
 
-// 🌟 FUNGSI PENYELAMAT FOTO
 const getImageUrl = (url: string | null) => {
   if (!url) return "";
   if (url.startsWith("http")) return url; 
   const cleanPath = url.startsWith("/") ? url : `/${url}`;
   return `${BACKEND_URL}${cleanPath}`;
 }
+
+// 🌟 FUNGSI PENYEDOT TOKEN MEDUSA V2 (MASTER KEY ANTI 401)
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (typeof document !== "undefined") {
+    // Medusa V2 menyembunyikan token di dalam cookie, kita sedot dan jadikan Bearer Token
+    const jwtMatch = document.cookie.match(/(?:^|;)\s*_medusa_jwt=([^;]*)/);
+    const adminMatch = document.cookie.match(/(?:^|;)\s*medusa_admin_token=([^;]*)/);
+    const token = (jwtMatch && jwtMatch[1]) || (adminMatch && adminMatch[1]);
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+};
 
 const HeroAdminPage = () => {
   const [slides, setSlides] = useState<any[]>([])
@@ -27,19 +41,22 @@ const HeroAdminPage = () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/hero`, {
         method: "GET",
-        credentials: "include" // Wajib ada untuk bypass CORS
+        credentials: "include",
+        headers: getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
       })
       if (!res.ok) throw new Error("Gagal tarik data")
       
       const data = await res.json()
       setSlides(data.heroes || [])
-      if(data.setting) setGlobalTitle(data.setting.global_title)
+      if (data.setting) setGlobalTitle(data.setting.global_title)
     } catch (err) {
       console.error("Fetch Error:", err)
     }
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { 
+    fetchData() 
+  }, [fetchData])
 
   const saveGlobalTitle = async () => {
     setLoading(true)
@@ -47,14 +64,13 @@ const HeroAdminPage = () => {
       const res = await fetch(`${BACKEND_URL}/admin/hero/settings`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(), // 🌟 INJEKSI KUNCI DI SINI
         body: JSON.stringify({ title: globalTitle })
       })
       
       if (!res.ok) throw new Error("Gagal update setting")
-      
       toast.success("Branding text updated successfully!")
-    } catch(err) {
+    } catch (err) {
       toast.error("Failed to update branding text")
     } finally {
       setLoading(false)
@@ -66,13 +82,13 @@ const HeroAdminPage = () => {
       const res = await fetch(`${BACKEND_URL}/admin/hero`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(), // 🌟 INJEKSI KUNCI DI SINI
         body: JSON.stringify({ image_url: url })
       })
       
       if (!res.ok) throw new Error("Gagal add slide")
-      
       fetchData()
+      toast.success("Slide added successfully!")
     } catch (err) {
       toast.error("Failed to add slide")
     }
@@ -81,31 +97,32 @@ const HeroAdminPage = () => {
   const updateImageSlide = async (id: string, url: string) => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/hero/${id}`, {
-        method: "POST", // Memang pakai POST karena routing di backend Bos di-set POST
+        method: "POST", 
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(), // 🌟 INJEKSI KUNCI DI SINI
         body: JSON.stringify({ image_url: url })
       })
       
       if (!res.ok) throw new Error("Gagal update slide")
-      
       fetchData()
+      toast.success("Slide updated successfully!")
     } catch (err) {
       toast.error("Failed to update slide")
     }
   }
 
   const deleteSlide = async (id: string) => {
-    if(!confirm("Remove this slide?")) return
+    if (!confirm("Remove this slide?")) return
     try {
       const res = await fetch(`${BACKEND_URL}/admin/hero/${id}`, { 
         method: "DELETE",
-        credentials: "include" 
+        credentials: "include",
+        headers: getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
       })
       
       if (!res.ok) throw new Error("Delete failed")
-      
       fetchData()
+      toast.success("Slide removed successfully!")
     } catch (err) {
       toast.error("Failed to delete slide")
     }
@@ -113,7 +130,6 @@ const HeroAdminPage = () => {
 
   return (
     <Container className="flex flex-col gap-y-8 p-8">
-      {/* BAGIAN UI TETAP SAMA */}
       <div className="flex items-center justify-between border-b border-ui-border-base pb-4">
         <div>
           <Heading level="h1" className="flex items-center gap-2">
@@ -156,7 +172,6 @@ const HeroAdminPage = () => {
           {slides.map((slide: any) => (
             <div key={slide.id} className="relative aspect-[9/14] rounded-xl overflow-hidden group border border-ui-border-base shadow-sm hover:shadow-md transition-all bg-ui-bg-subtle">
               
-              {/* 🌟 PERBAIKAN: Bungkus dengan getImageUrl biar gambar muncul sempurna! */}
               <img src={getImageUrl(slide.image_url)} className="w-full h-full object-cover" alt="Banner" />
               
               <div className="absolute inset-0 bg-ui-bg-base/90 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-3 transition-opacity p-4 backdrop-blur-sm">
@@ -164,14 +179,14 @@ const HeroAdminPage = () => {
                    onSelect={(url) => updateImageSlide(slide.id, url)} 
                    category="hero-banner"
                    trigger={
-                <Button 
-                  variant="secondary" 
-                  size="small" 
-                  className="w-full shadow-sm text-black font-bold hover:text-black"
-                >
-                  <RefreshCcw className="mr-2 w-3 h-3" /> Change
-                </Button>
-              }
+                    <Button 
+                      variant="secondary" 
+                      size="small" 
+                      className="w-full shadow-sm text-black font-bold hover:text-black"
+                    >
+                      <RefreshCcw className="mr-2 w-3 h-3" /> Change
+                    </Button>
+                  }
                 />
                 <Button variant="danger" size="small" className="w-full" onClick={() => deleteSlide(slide.id)}>
                   <Trash className="mr-2 w-3 h-3" /> Delete

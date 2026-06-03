@@ -17,6 +17,22 @@ const getImageUrl = (url: string | null) => {
   return `${BACKEND_URL}${cleanPath}`;
 }
 
+// 🌟 FUNGSI PENYEDOT TOKEN MEDUSA V2 (MASTER KEY ANTI 401)
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = {};
+  if (typeof document !== "undefined") {
+    // Sedot token dari cookie browser
+    const jwtMatch = document.cookie.match(/(?:^|;)\s*_medusa_jwt=([^;]*)/);
+    const adminMatch = document.cookie.match(/(?:^|;)\s*medusa_admin_token=([^;]*)/);
+    const token = (jwtMatch && jwtMatch[1]) || (adminMatch && adminMatch[1]);
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+};
+
 const StoreLocationsAdmin = () => {
   const [stores, setStores] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -38,7 +54,8 @@ const StoreLocationsAdmin = () => {
   const fetchStores = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/store-location`, {
-        credentials: "include" // 🌟 WAJIB TEMBUS CORS
+        credentials: "include", // 🌟 WAJIB TEMBUS CORS
+        headers: getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
       })
       if (!res.ok) throw new Error("Gagal mengambil data")
       const data = await res.json()
@@ -80,7 +97,10 @@ const StoreLocationsAdmin = () => {
       
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
+        },
         credentials: "include", // 🌟 WAJIB TEMBUS CORS
         body: JSON.stringify(formData)
       })
@@ -105,7 +125,8 @@ const StoreLocationsAdmin = () => {
     try {
       const res = await fetch(`${BACKEND_URL}/admin/store-location/${id}`, { 
         method: "DELETE",
-        credentials: "include" // 🌟 WAJIB TEMBUS CORS
+        credentials: "include", // 🌟 WAJIB TEMBUS CORS
+        headers: getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
       })
       if (!res.ok) throw new Error()
       
@@ -128,7 +149,10 @@ const StoreLocationsAdmin = () => {
     try {
         const res = await fetch(`${BACKEND_URL}/admin/store-location/${store.id}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              ...getAuthHeaders() // 🌟 INJEKSI KUNCI DI SINI
+            },
             credentials: "include", // 🌟 WAJIB TEMBUS CORS
             body: JSON.stringify({ is_featured: checked })
         });

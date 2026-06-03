@@ -4,9 +4,30 @@ import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { BuildingStorefront } from "@medusajs/icons";
 
 // Deteksi otomatis URL Backend (Local vs Live)
-// Ganti fallback "https://api.niconicoresort.com" dengan URL Railway Bos
 const BACKEND_URL = import.meta.env.VITE_MEDUSA_BACKEND_URL || 
-                    (typeof window !== "undefined" && window.location.hostname === "localhost" ? "" : "https://niconico-backend.up.railway.app");
+                    (typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:9000" : "https://niconico-backend-production.up.railway.app");
+
+// 🌟 FUNGSI PENYEDOT TOKEN MEDUSA V2 (MASTER KEY ANTI 401)
+const getAuthHeaders = (isUpload = false) => {
+  const headers: Record<string, string> = {};
+  
+  // Jika BUKAN upload file, baru kita set jadi JSON.
+  // Jika upload file, browser akan otomatis men-set 'multipart/form-data' dengan sendirinya.
+  if (!isUpload) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (typeof document !== "undefined") {
+    const jwtMatch = document.cookie.match(/(?:^|;)\s*_medusa_jwt=([^;]*)/);
+    const adminMatch = document.cookie.match(/(?:^|;)\s*medusa_admin_token=([^;]*)/);
+    const token = (jwtMatch && jwtMatch[1]) || (adminMatch && adminMatch[1]);
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+};
 
 export default function MyobAdminPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,12 +49,14 @@ export default function MyobAdminPage() {
     buttonLink: "",
   });
 
+  // 🌟 FETCH DATA UTAMA
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch(`${BACKEND_URL}/admin/myob?t=${new Date().getTime()}`, {
           method: "GET",
-          credentials: "include", // Wajib agar session/cookie admin tidak diblokir di live
+          credentials: "include", 
+          headers: getAuthHeaders(), // SUNTIKAN KUNCI DI SINI
         });
         
         if (!response.ok) throw new Error("Gagal tarik data");
@@ -60,12 +83,14 @@ export default function MyobAdminPage() {
     fetchData();
   }, []);
 
+  // 🌟 FETCH GALERI
   const fetchGallery = async () => {
     setIsLoadingGallery(true);
     try {
       const res = await fetch(`${BACKEND_URL}/admin/myob/media`, {
         method: "GET",
         credentials: "include",
+        headers: getAuthHeaders(), // SUNTIKAN KUNCI DI SINI
       });
       if (!res.ok) throw new Error("Gagal tarik galeri");
       const data = await res.json();
@@ -82,6 +107,7 @@ export default function MyobAdminPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 🌟 UPLOAD FILE (DENGAN FLAG isUpload = true)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetField: "mediaUrl" | "posterUrl") => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -95,6 +121,7 @@ export default function MyobAdminPage() {
       const response = await fetch(`${BACKEND_URL}/admin/myob/upload`, {
         method: "POST",
         credentials: "include",
+        headers: getAuthHeaders(true), // SUNTIKAN KUNCI KHUSUS UPLOAD
         body: uploadData, 
       });
 
@@ -111,6 +138,7 @@ export default function MyobAdminPage() {
     }
   };
 
+  // 🌟 SIMPAN DATA (JSON)
   const handleSave = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -128,7 +156,7 @@ export default function MyobAdminPage() {
       const response = await fetch(`${BACKEND_URL}/admin/myob`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(), // SUNTIKAN KUNCI DI SINI
         body: JSON.stringify(payload), 
       });
 
