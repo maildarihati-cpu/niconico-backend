@@ -16,11 +16,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {
     const storeLocationService = req.scope.resolve("storeLocation")
     
-    // Tarik maksimal 3 data yang di-ceklis "Featured"
-    const store_locations = await storeLocationService.listStoreLocations({
-      is_featured: true
-    }, { 
-      take: 3 
+    // 🌟 PERBAIKAN: Hapus filter is_featured dan ambil banyak data sekaligus!
+    // Kita biarkan objek filter kosong {} agar semua toko ketarik.
+    const store_locations = await storeLocationService.listStoreLocations({}, { 
+      take: 100 // Ambil maksimal 100 toko biar aman gak kepotong
     })
 
     // Hitung total semua store yang ada
